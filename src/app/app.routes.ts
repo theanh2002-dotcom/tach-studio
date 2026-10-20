@@ -4,6 +4,7 @@ import { StudioShowcase } from './features/studio-showcase/studio-showcase';
 import { PrintOrder } from './features/print-order/print-order';
 import { Booking } from './features/booking/booking';
 import { EventGallery } from './features/event-gallery/event-gallery';
+import { Admin } from './features/admin/admin';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -14,5 +15,6 @@ export const routes: Routes = [
   { path: 'contact', component: Booking }, // Alias
   { path: 'event/:id', component: EventGallery },
   { path: 'gallery/:id', component: EventGallery },
+  { path: 'admin', component: Admin },
   { path: '**', redirectTo: '' }
 ];

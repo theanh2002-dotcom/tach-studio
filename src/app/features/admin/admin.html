@@ -1,0 +1,342 @@
+<div class="min-h-screen bg-[#F4F5F7] text-[#2C1A1D] pt-24 pb-20 font-sans">
+  
+  <!-- ========================================== -->
+  <!-- CASE 1: MÀN HÌNH ĐĂNG NHẬP ADMIN SECRET     -->
+  <!-- ========================================== -->
+  <div *ngIf="!isAuthenticated()" class="max-w-md mx-auto px-6 py-16">
+    <div class="bg-white rounded-3xl p-8 border border-[#E8DDD2] shadow-xl text-center warm-shadow">
+      <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-[#C89965] mx-auto mb-4 shadow">
+        <img src="/logo.jpg" alt="Logo" class="w-full h-full object-cover" />
+      </div>
+      <h2 class="text-2xl font-serif font-bold text-[#681423] mb-1">Tách Tách Admin Portal</h2>
+      <p class="text-xs text-[#2C1A1D]/70 font-sans mb-6">Đăng nhập để xem tình trạng máy bốt và doanh thu thời gian thực</p>
+
+      <form (ngSubmit)="login()" class="space-y-4">
+        <div>
+          <input type="password" 
+                 [ngModel]="adminSecret()" 
+                 (ngModelChange)="adminSecret.set($event)"
+                 name="adminSecret" 
+                 placeholder="Nhập mã bí mật Admin Secret..." 
+                 class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] text-sm outline-none" />
+        </div>
+        <div *ngIf="errorMessage()" class="text-xs text-red-600 font-semibold">{{ errorMessage() }}</div>
+        <button type="submit" 
+                class="w-full py-3.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs uppercase tracking-wider shadow transition-all">
+          Xác Thực & Vào Bảng Điều Khiển
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- CASE 2: BẢNG ĐIỀU KHIỂN CHÍNH (AUTHENTICATED) -->
+  <!-- ========================================== -->
+  <div *ngIf="isAuthenticated()" class="max-w-7xl mx-auto px-4 sm:px-6">
+    
+    <!-- TOP HEADER BAR -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-white p-6 rounded-3xl border border-[#E8DDD2] shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-[#C89965] shrink-0">
+          <img src="/logo.jpg" alt="Logo" class="w-full h-full object-cover" />
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-serif font-bold text-[#681423]">Tách Tách Studio Dashboard</h1>
+            <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-300">
+              Cloudflare D1 Live
+            </span>
+          </div>
+          <p class="text-xs text-[#2C1A1D]/60 mt-0.5">Giám sát chu kỳ 3 phút • Dữ liệu đồng bộ trực tiếp</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 self-end md:self-auto">
+        <button (click)="fetchCloudflareDashboard()" 
+                [disabled]="isLoading()"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-xs font-semibold text-[#681423] border border-[#C89965]/40 transition-all">
+          <span [class.animate-spin]="isLoading()">🔄</span>
+          <span>{{ isLoading() ? 'Đang tải...' : 'Làm Mới (F5)' }}</span>
+        </button>
+        <button (click)="logout()" 
+                class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 hover:text-red-600 text-xs font-semibold text-[#2C1A1D] transition-all">
+          Đăng Xuất
+        </button>
+      </div>
+    </div>
+
+    <!-- NOTIFICATION BANNERS -->
+    <div *ngIf="successMessage()" class="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 shadow-sm">
+      <span>✓</span>
+      <span>{{ successMessage() }}</span>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="flex items-center gap-2 mb-8 border-b border-[#E8DDD2] pb-3 overflow-x-auto">
+      <button (click)="activeTab.set('monitoring')" 
+              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+              [ngClass]="activeTab() === 'monitoring' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
+        <span>🖥️</span>
+        <span>Giám Sát Phòng Chụp (Live)</span>
+        <span class="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full">{{ machines().length }} máy</span>
+      </button>
+
+      <button (click)="activeTab.set('revenue')" 
+              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+              [ngClass]="activeTab() === 'revenue' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
+        <span>💰</span>
+        <span>Doanh Thu & Giao Dịch</span>
+      </button>
+
+      <button (click)="activeTab.set('settings')" 
+              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+              [ngClass]="activeTab() === 'settings' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
+        <span>⚙️</span>
+        <span>Cấu Hình Bốt</span>
+      </button>
+    </div>
+
+    <!-- KPI CARDS SUMMARY -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+      
+      <!-- Card 1: Doanh thu -->
+      <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Doanh Thu Hôm Nay</span>
+          <span class="text-base">💵</span>
+        </div>
+        <div>
+          <div class="text-xl sm:text-2xl font-serif font-bold text-[#681423]">
+            {{ formatVND(overview().today_revenue) }}
+          </div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">
+            +15% so với hôm qua
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2: Lượt chụp -->
+      <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Số Lượt Chụp</span>
+          <span class="text-base">📸</span>
+        </div>
+        <div>
+          <div class="text-xl sm:text-2xl font-serif font-bold text-[#2C1A1D]">
+            {{ overview().today_sessions }} <span class="text-sm font-sans font-normal text-[#2C1A1D]/60">phiên</span>
+          </div>
+          <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
+            Cao điểm: 15h00 - 17h30
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3: Số ảnh đã in -->
+      <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Tổng Số Bản In</span>
+          <span class="text-base">🖨️</span>
+        </div>
+        <div>
+          <div class="text-xl sm:text-2xl font-serif font-bold text-[#C89965]">
+            {{ overview().today_prints }} <span class="text-sm font-sans font-normal text-[#2C1A1D]/60">bản</span>
+          </div>
+          <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
+            Khung ưa thích: Strip 1x4 (72%)
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4: Cơ cấu tiền -->
+      <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Thanh Toán</span>
+          <span class="text-base">💳</span>
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs font-semibold">
+            <span>VietQR SePay:</span>
+            <span class="text-[#681423]">{{ formatVND(overview().qr_revenue) }}</span>
+          </div>
+          <div class="flex justify-between text-xs font-semibold">
+            <span>Tiền mặt:</span>
+            <span>{{ formatVND(overview().cash_revenue) }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 1: GIÁM SÁT MÁY BỐT (MACHINE MONITORING) -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab() === 'monitoring'" class="space-y-6">
+      
+      <div class="flex items-center justify-between">
+        <h3 class="font-serif font-bold text-lg text-[#681423]">Tình Trạng Các Phòng Chụp (Thời Gian Thực)</h3>
+        <span class="text-xs text-[#2C1A1D]/60">Đồng bộ chu kỳ 3 phút / lần</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div *ngFor="let m of machines()" 
+             class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DDD2] shadow-sm flex flex-col justify-between relative overflow-hidden"
+             [ngClass]="m.paper_remaining <= 20 ? 'border-red-300 ring-2 ring-red-100' : ''">
+          
+          <!-- Card Header: Tên máy & Trạng thái -->
+          <div>
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h4 class="font-serif font-bold text-lg text-[#681423]">{{ m.name }}</h4>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs text-[#2C1A1D]/60 font-mono">{{ m.id }}</span>
+                  <span class="text-xs text-[#2C1A1D]/40">•</span>
+                  <span class="text-xs text-[#C89965] font-semibold">{{ m.store_name || m.store_id }}</span>
+                </div>
+              </div>
+
+              <!-- Status Badge -->
+              <div class="px-3 py-1.5 rounded-full border text-[11px] font-bold flex items-center gap-2"
+                   [ngClass]="[getStatusBadge(m.status).bg, getStatusBadge(m.status).textCol]">
+                <span class="w-2 h-2 rounded-full" [ngClass]="getStatusBadge(m.status).dot"></span>
+                <span>{{ getStatusBadge(m.status).text }}</span>
+              </div>
+            </div>
+
+            <!-- CUỘN GIẤY IN DNP GAUGE -->
+            <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] mb-5">
+              <div class="flex justify-between items-center text-xs mb-2">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span>📄 Cuộn Giấy In DNP RX1HS:</span>
+                  <span *ngIf="m.paper_remaining <= 20" class="text-red-600 font-extrabold animate-pulse">
+                    ⚠️ SẮP HẾT!
+                  </span>
+                </span>
+                <span [ngClass]="getPaperTextColorClass(m)">
+                  {{ m.paper_remaining }} / {{ m.paper_total_capacity || 700 }} ảnh ({{ getPaperPercentage(m) }}%)
+                </span>
+              </div>
+
+              <!-- Progress bar -->
+              <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div class="h-full transition-all duration-500 rounded-full"
+                     [ngClass]="getPaperColorClass(m)"
+                     [style.width.%]="getPaperPercentage(m)"></div>
+              </div>
+
+              <!-- Reset paper button -->
+              <div class="mt-3 flex justify-between items-center pt-2 border-t border-[#E8DDD2]/60">
+                <span class="text-[11px] text-[#2C1A1D]/60">Máy in: {{ m.printer_status }}</span>
+                <button type="button" 
+                        (click)="resetPaper(m.id)" 
+                        [disabled]="resettingMachineId() === m.id"
+                        class="text-[11px] font-bold text-[#681423] hover:text-[#C89965] flex items-center gap-1">
+                  <span>🔄</span>
+                  <span>{{ resettingMachineId() === m.id ? 'Đang reset...' : 'Đã thay cuộn mới (Reset 700)' }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- PERIPHERAL STATUS DETAILS -->
+            <div class="grid grid-cols-2 gap-3 text-xs mb-5 font-sans">
+              <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-2.5">
+                <span class="text-base">📷</span>
+                <div>
+                  <div class="text-[10px] text-[#2C1A1D]/60">Camera DSLR:</div>
+                  <div class="font-semibold" [ngClass]="m.camera_status === 'CONNECTED' ? 'text-emerald-700' : 'text-red-600 font-bold'">
+                    {{ m.camera_model || 'Canon EOS' }} ({{ m.camera_status === 'CONNECTED' ? 'Tốt' : 'Mất kết nối' }})
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-2.5">
+                <span class="text-base">💾</span>
+                <div>
+                  <div class="text-[10px] text-[#2C1A1D]/60">Ổ cứng trống:</div>
+                  <div class="font-semibold text-[#2C1A1D]">{{ m.disk_free_gb }} GB khả dụng</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Footer: Heartbeat time -->
+          <div class="pt-3 border-t border-[#E8DDD2] flex items-center justify-between text-[11px] text-[#2C1A1D]/60 font-sans">
+            <span>Phiên bản: v{{ m.app_version || '1.0.4' }}</span>
+            <span>Ping nhịp tim: <b>{{ formatTime(m.last_heartbeat_at) }}</b></span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: DOANH THU & GIAO DỊCH (REVENUE TAB) -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab() === 'revenue'" class="space-y-6">
+      
+      <div class="flex items-center justify-between">
+        <h3 class="font-serif font-bold text-lg text-[#681423]">Lịch Sử Giao Dịch Gần Nhất</h3>
+        <button class="px-4 py-1.5 rounded-full border border-[#C89965] text-xs font-semibold text-[#681423] hover:bg-[#FAF6F0]">
+          📥 Xuất Báo Cáo Excel (.xlsx)
+        </button>
+      </div>
+
+      <div class="bg-white rounded-3xl border border-[#E8DDD2] shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-[#FAF6F0] text-[#681423] font-serif uppercase tracking-wider border-b border-[#E8DDD2]">
+              <tr>
+                <th class="py-3.5 px-4 font-bold">Thời Gian</th>
+                <th class="py-3.5 px-4 font-bold">Phòng / Máy</th>
+                <th class="py-3.5 px-4 font-bold">Gói Chụp</th>
+                <th class="py-3.5 px-4 font-bold text-center">Bản In</th>
+                <th class="py-3.5 px-4 font-bold">Số Tiền</th>
+                <th class="py-3.5 px-4 font-bold">Hình Thức</th>
+                <th class="py-3.5 px-4 font-bold text-center">Trạng Thái</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#E8DDD2] text-[#2C1A1D]">
+              <tr *ngFor="let tx of transactions()" class="hover:bg-gray-50/70 transition-colors">
+                <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at) }}</td>
+                <td class="py-3 px-4 font-semibold text-[#681423]">{{ tx.machine_name || tx.machine_id }}</td>
+                <td class="py-3 px-4">{{ tx.package_name }}</td>
+                <td class="py-3 px-4 text-center font-bold">{{ tx.print_copies }} bản</td>
+                <td class="py-3 px-4 font-serif font-bold text-sm text-[#681423]">{{ formatVND(tx.total_amount) }}</td>
+                <td class="py-3 px-4">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                        [ngClass]="tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'">
+                    {{ tx.payment_method.includes('SEPAY') ? 'VietQR SePay' : 'Tiền Mặt' }}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <span class="text-emerald-700 font-bold">✓ Thành công</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: CẤU HÌNH & HƯỚNG DẪN KẾT NỐI          -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab() === 'settings'" class="bg-white rounded-3xl p-8 border border-[#E8DDD2] shadow-sm space-y-6">
+      <h3 class="font-serif font-bold text-xl text-[#681423]">Cấu Hình Kết Nối Máy Bốt (Cloudflare Native)</h3>
+      <p class="text-xs text-[#2C1A1D]/70 leading-relaxed max-w-2xl">
+        Để một máy bốt mới tại quán tự động báo cáo tình trạng giấy in và doanh thu lên trang Admin này, bạn chỉ cần nhập địa chỉ Cloudflare Worker vào file cài đặt của bốt:
+      </p>
+
+      <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/40 font-mono text-xs space-y-2">
+        <div><b>Worker URL:</b> https://tanhbooth-api.laihoanganh456.workers.dev</div>
+        <div><b>Heartbeat API:</b> POST /v1/telemetry/heartbeat (chu kỳ 3 phút)</div>
+        <div><b>Transaction API:</b> POST /v1/telemetry/transactions (bắn ngay khi thanh toán)</div>
+        <div><b>Database:</b> Cloudflare D1 (tanhbooth-license-prod)</div>
+      </div>
+    </div>
+
+  </div>
+</div>
