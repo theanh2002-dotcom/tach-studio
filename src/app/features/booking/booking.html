@@ -1,0 +1,184 @@
+<div class="pt-28 pb-20 md:pt-36 md:pb-28 min-h-screen bg-[#FAF6F0]">
+  <div class="max-w-4xl mx-auto px-6">
+    
+    <!-- Title Banner -->
+    <div class="text-center max-w-2xl mx-auto mb-12">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#C89965]/35 shadow-sm mb-4">
+        <span class="text-xs font-bold text-[#681423] uppercase tracking-wider">📅 Giữ Chỗ Phòng Chụp Riêng Tư</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-[#681423] mb-3">
+        Đặt Lịch Chụp Tại Tách Tách
+      </h1>
+      <p class="text-xs sm:text-sm text-[#2C1A1D]/75 font-sans leading-relaxed">
+        Chọn khung giờ rảnh của bạn và người thương để chúng mình chuẩn bị phòng chụp, bật máy lạnh và đón tiếp chu đáo nhất nhé!
+      </p>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div *ngIf="isSuccess" class="bg-white rounded-3xl p-8 md:p-12 border border-[#C89965]/40 shadow-xl text-center max-w-lg mx-auto warm-shadow">
+      <div class="w-20 h-20 rounded-full bg-[#FAF6F0] border-2 border-[#C89965] text-[#681423] flex items-center justify-center text-4xl mx-auto mb-6 shadow-inner">
+        🎉
+      </div>
+      <h3 class="text-2xl font-serif font-bold text-[#681423] mb-3">Nhận Lịch Đặt Thành Công!</h3>
+      <p class="text-xs sm:text-sm text-[#2C1A1D]/80 font-sans leading-relaxed mb-6">
+        Cảm ơn bạn đã lựa chọn <b>Tách Tách Photobooth Studio</b>. Thông tin đặt phòng của bạn đã được chuyển tới quản lý. Chúng mình sẽ gọi điện hoặc nhắn tin Zalo xác nhận trong vòng 10-15 phút nhé!
+      </p>
+      <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] text-xs text-left mb-6 space-y-1.5 font-sans">
+        <div><b>Khách hàng:</b> {{ name }} - {{ phone }}</div>
+        <div><b>Gói chụp:</b> {{ selectedPackage }}</div>
+        <div><b>Thời gian:</b> {{ timeSlot }} ngày {{ bookingDate }}</div>
+      </div>
+      <div class="flex gap-3 justify-center">
+        <button (click)="resetBooking()" class="px-7 py-3 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-semibold text-xs transition-all shadow">
+          Đặt Thêm Lịch Khác
+        </button>
+        <a routerLink="/" class="px-7 py-3 rounded-full bg-white hover:bg-[#FAF6F0] text-[#681423] border border-[#681423]/40 font-semibold text-xs transition-all">
+          Về Trang Chủ
+        </a>
+      </div>
+    </div>
+
+    <!-- MAIN FORM -->
+    <div *ngIf="!isSuccess" class="bg-white rounded-3xl p-7 md:p-10 border border-[#E8DDD2] shadow-sm warm-shadow">
+      <form (ngSubmit)="submitBooking()" class="space-y-8">
+        
+        <!-- ERROR MESSAGE -->
+        <div *ngIf="errorMessage" class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-sans flex items-start gap-3">
+          <span class="text-base">⚠️</span>
+          <div class="flex-1">{{ errorMessage }}</div>
+        </div>
+
+        <!-- 1. GÓI CHỤP -->
+        <div>
+          <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-3">
+            1. Chọn Gói Chụp Phù Hợp *
+          </label>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label *ngFor="let pkg of packages" 
+                   class="p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between"
+                   [ngClass]="selectedPackage === pkg.name 
+                     ? 'bg-[#FAF6F0] border-2 border-[#681423] shadow-sm' 
+                     : 'border-[#E8DDD2] hover:border-[#C89965]'">
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <span class="font-serif font-bold text-sm text-[#681423]">{{ pkg.name }}</span>
+                <input type="radio" 
+                       name="package" 
+                       [value]="pkg.name" 
+                       [(ngModel)]="selectedPackage" 
+                       class="accent-[#681423] mt-1" />
+              </div>
+              <p class="text-[11px] text-[#2C1A1D]/70 font-sans">{{ pkg.desc }}</p>
+            </label>
+          </div>
+        </div>
+
+        <!-- 2. THỜI GIAN CHỤP -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-2">
+              2. Ngày Chụp *
+            </label>
+            <input type="date" 
+                   [(ngModel)]="bookingDate" 
+                   name="bookingDate"
+                   required
+                   class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-2">
+              3. Số Lượng Người Chụp
+            </label>
+            <select [(ngModel)]="peopleCount" 
+                    name="peopleCount"
+                    class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none">
+              <option value="1 người">1 người (Solo)</option>
+              <option value="2 người">2 người (Couple / Đôi bạn thân)</option>
+              <option value="3-4 người">3 - 4 người (Nhóm bạn nhỏ)</option>
+              <option value="5-8 người">5 - 8 người (Gia đình / Nhóm lớn)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 4. KHUNG GIỜ -->
+        <div>
+          <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-2.5">
+            4. Chọn Khung Giờ Chụp *
+          </label>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-48 overflow-y-auto pr-1">
+            <button type="button" 
+                    *ngFor="let slot of timeSlots" 
+                    (click)="timeSlot = slot"
+                    class="py-2.5 px-3 rounded-xl text-xs font-medium border text-center transition-all"
+                    [ngClass]="timeSlot === slot 
+                      ? 'bg-[#681423] text-white border-[#681423] font-bold shadow-sm' 
+                      : 'bg-[#FAF6F0] border-[#E8DDD2] text-[#2C1A1D] hover:border-[#C89965]'">
+              {{ slot }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. PHÔNG NỀN DỰ KIẾN -->
+        <div>
+          <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-2">
+            5. Tông Màu Phông Nền Ưa Thích
+          </label>
+          <select [(ngModel)]="selectedBackdrop" 
+                  name="backdrop"
+                  class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none">
+            <option *ngFor="let bd of backdrops" [value]="bd">{{ bd }}</option>
+          </select>
+          <p class="text-[11px] text-[#2C1A1D]/60 mt-1">Bạn có thể đổi phông nền khác khi tới studio tùy thích nhé!</p>
+        </div>
+
+        <!-- 6. THÔNG TIN KHÁCH HÀNG -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-[#E8DDD2] pt-6">
+          <div>
+            <label class="block text-xs font-bold text-[#2C1A1D] uppercase tracking-wider mb-1.5">
+              Họ và Tên *
+            </label>
+            <input type="text" 
+                   [(ngModel)]="name" 
+                   name="name"
+                   placeholder="Ví dụ: Nguyễn Phương Linh" 
+                   required
+                   class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none" />
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-[#2C1A1D] uppercase tracking-wider mb-1.5">
+              Số Điện Thoại Zalo *
+            </label>
+            <input type="tel" 
+                   [(ngModel)]="phone" 
+                   name="phone"
+                   placeholder="Ví dụ: 0912345678" 
+                   required
+                   class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-[#2C1A1D] uppercase tracking-wider mb-1.5">
+            Ghi Chú Hoặc Yêu Cầu Riêng (Tuỳ chọn)
+          </label>
+          <textarea [(ngModel)]="note" 
+                    name="note"
+                    rows="3"
+                    placeholder="Ví dụ: Hôm nay sinh nhật bạn mình, nhờ studio chuẩn bị bóng bay hoặc mũ chúc mừng..."
+                    class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] outline-none"></textarea>
+        </div>
+
+        <!-- SUBMIT BUTTON -->
+        <button type="submit" 
+                [disabled]="isSubmitting"
+                class="w-full py-4 rounded-full bg-[#681423] hover:bg-[#7E1B2E] disabled:bg-gray-400 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+          <span *ngIf="isSubmitting" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          <span>{{ isSubmitting ? 'Đang gửi thông tin...' : 'Xác Nhận Đặt Lịch Giữ Chỗ' }}</span>
+        </button>
+
+      </form>
+    </div>
+
+  </div>
+</div>

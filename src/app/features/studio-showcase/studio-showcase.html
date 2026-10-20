@@ -1,0 +1,179 @@
+<!-- STUDIO SHOWCASE BANNER -->
+<section class="pt-32 pb-16 md:pt-40 md:pb-24 bg-gradient-to-b from-[#FAF6F0] via-[#F5EBE1] to-[#FAF6F0] border-b border-[#C89965]/20">
+  <div class="max-w-7xl mx-auto px-6 text-center">
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-[#C89965]/30 shadow-sm mb-5">
+      <span class="text-sm">📷</span>
+      <span class="text-xs font-semibold text-[#681423] uppercase tracking-wider">
+        Không Gian Chụp Ảnh Tự Do Chuẩn Seoul
+      </span>
+    </div>
+
+    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-[#681423] mb-6 leading-tight">
+      Trải Nghiệm Phòng Chụp Tách Tách
+    </h1>
+
+    <p class="text-base sm:text-lg text-[#2C1A1D]/80 font-sans max-w-2xl mx-auto leading-relaxed mb-8">
+      Một căn phòng hoàn toàn riêng tư, trang bị đầy đủ máy ảnh chuyên nghiệp, đèn flash tản sáng tự nhiên và remote bấm tay. Nơi bạn làm chủ từng khung hình và lưu giữ nụ cười đẹp nhất!
+    </p>
+
+    <div class="flex flex-wrap items-center justify-center gap-4">
+      <a routerLink="/dat-lich" 
+         class="px-8 py-3.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-semibold text-sm shadow transition-all">
+        Đặt Phòng Chụp Ngay
+      </a>
+      <a routerLink="/in-anh" 
+         class="px-8 py-3.5 rounded-full bg-white hover:bg-[#FAF6F0] text-[#681423] border border-[#C89965] font-semibold text-sm shadow-sm transition-all">
+        Gửi Ảnh Đặt In Online
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 1: TRANG THIẾT BỊ STUDIO -->
+<section class="py-20 md:py-28 bg-white">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] uppercase tracking-widest mb-2 inline-block">Chất Lượng Vượt Trội</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-3">
+        Thiết Bị Phòng Chụp Đạt Chuẩn
+      </h2>
+      <p class="text-sm text-[#2C1A1D]/70 font-sans">
+        Chúng tôi đầu tư hệ thống thiết bị studio hiện đại nhất để mỗi tấm ảnh đều rõ nét, màu sắc trong trẻo tự nhiên.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div *ngFor="let eq of equipmentList" 
+           class="p-7 rounded-3xl bg-[#FAF6F0] border border-[#E8DDD2] hover:border-[#C89965] transition-all duration-300 warm-shadow flex flex-col">
+        <div class="w-14 h-14 rounded-2xl bg-white border border-[#C89965]/30 flex items-center justify-center text-3xl mb-5 shadow-sm">
+          {{ eq.icon }}
+        </div>
+        <h3 class="font-serif text-xl font-bold text-[#681423] mb-2.5">
+          {{ eq.title }}
+        </h3>
+        <p class="text-xs sm:text-sm text-[#2C1A1D]/75 leading-relaxed font-sans mt-auto">
+          {{ eq.desc }}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: BẢNG MÀU PHÔNG NỀN (BACKDROPS) -->
+<section class="py-20 md:py-28 bg-[#FAF6F0] border-t border-[#C89965]/15" id="backdrops">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] uppercase tracking-widest mb-2 inline-block">Đa Dạng Phong Cách</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-3">
+        5 Tone Màu Phông Nền Độc Quyền
+      </h2>
+      <p class="text-sm text-[#2C1A1D]/70 font-sans">
+        Dễ dàng lựa chọn phông nền phù hợp với phong cách trang phục và cá tính của bạn.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div *ngFor="let bd of backdrops" 
+           class="p-5 rounded-2xl bg-white border border-[#E8DDD2] shadow-sm hover:shadow-md transition-all flex flex-col">
+        <!-- Color swatch box -->
+        <div class="w-full aspect-[4/3] rounded-xl mb-4 border flex items-center justify-center shadow-inner relative overflow-hidden"
+             [style.background-color]="bd.colorCode"
+             [style.border-color]="bd.borderCode">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-white/80 text-[#2C1A1D] shadow-sm backdrop-blur-sm">
+            {{ bd.tag }}
+          </span>
+        </div>
+        
+        <h4 class="font-serif font-bold text-base text-[#681423] mb-1.5">
+          {{ bd.name }}
+        </h4>
+        <p class="text-xs text-[#2C1A1D]/70 font-sans leading-relaxed mt-auto">
+          {{ bd.desc }}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: KHO PHỤ KIỆN PROPS -->
+<section class="py-20 md:py-28 bg-white border-t border-[#C89965]/15" id="props">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      
+      <div class="lg:col-span-5">
+        <span class="text-xs font-bold text-[#C89965] uppercase tracking-widest mb-2 inline-block">Thoả Sức Biến Hoá</span>
+        <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-5 leading-tight">
+          Kho Phụ Kiện Đạo Cụ<br>
+          <span class="italic text-[#C89965]">Hơn 200+ Món Miễn Phí!</span>
+        </h2>
+        <p class="text-sm sm:text-base text-[#2C1A1D]/75 font-sans leading-relaxed mb-6">
+          Tách Tách chuẩn bị sẵn một thiên đường đạo cụ từ phong cách Y2K sành điệu, ngộ nghĩnh hài hước cho tới vintage nhẹ nhàng. Tất cả phụ kiện đều được khử khuẩn và vệ sinh mỗi ngày để bạn yên tâm sử dụng.
+        </p>
+        <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/30">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">💄</span>
+            <div>
+              <div class="text-xs font-bold text-[#681423]">Bàn Trang Điểm Tiện Nghi</div>
+              <div class="text-[11px] text-[#2C1A1D]/70">Có sẵn máy uốn tóc, lược, gương LED để bạn tút tát trước khi chụp.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div *ngFor="let cat of propsCategories" 
+             class="p-6 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] shadow-sm flex flex-col">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="font-serif font-bold text-base text-[#681423]">{{ cat.name }}</h4>
+            <span class="text-xs font-bold text-[#C89965] bg-white px-2 py-0.5 rounded-full border border-[#C89965]/20">{{ cat.count }}</span>
+          </div>
+          <ul class="space-y-2 text-xs text-[#2C1A1D]/75 font-sans">
+            <li *ngFor="let it of cat.items" class="flex items-center gap-2">
+              <span class="text-[#681423] font-bold">•</span>
+              <span>{{ it }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: BỘ SƯU TẬP MẪU KHUNG ẢNH (FRAMES) -->
+<section class="py-20 md:py-28 bg-[#FAF6F0] border-t border-[#C89965]/15">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] uppercase tracking-widest mb-2 inline-block">Định Dạng Ảnh In</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-3">
+        Mẫu Khung In Xinh Xắn
+      </h2>
+      <p class="text-sm text-[#2C1A1D]/70 font-sans">
+        Mỗi bức ảnh in ra đều mang dấu ấn riêng biệt của Tách Tách kèm mã QR để bạn tải toàn bộ ảnh gốc và video về máy bất cứ lúc nào.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div *ngFor="let fs of frameStyles" 
+           class="p-8 rounded-3xl bg-white border border-[#E8DDD2] shadow-sm hover:shadow-md transition-all flex flex-col text-center items-center">
+        <div class="w-20 h-28 bg-[#FAF6F0] border-2 border-dashed border-[#C89965] rounded-xl flex items-center justify-center text-[#681423] font-serif font-bold text-lg mb-6 shadow-inner">
+          {{ fs.ratio }}
+        </div>
+        <h4 class="font-serif font-bold text-lg text-[#681423] mb-2">{{ fs.name }}</h4>
+        <p class="text-xs text-[#2C1A1D]/70 font-sans leading-relaxed">{{ fs.desc }}</p>
+      </div>
+    </div>
+
+    <!-- Booking CTA banner -->
+    <div class="mt-16 bg-[#681423] text-white p-8 md:p-12 rounded-3xl flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+      <div>
+        <h3 class="text-2xl sm:text-3xl font-serif font-bold mb-2 text-white">Sẵn Sàng Cho Buổi Chụp Tuyệt Vời?</h3>
+        <p class="text-xs sm:text-sm text-white/80 font-sans">Đặt lịch giữ phòng ngay hôm nay để nhận ưu đãi gói in ảnh độc quyền từ Tách Tách!</p>
+      </div>
+      <a routerLink="/dat-lich" 
+         class="shrink-0 px-8 py-3.5 rounded-full bg-[#C89965] hover:bg-[#B78753] text-[#2C1A1D] font-bold text-sm shadow-md transition-all">
+        Đặt Lịch Giữ Phòng Ngay
+      </a>
+    </div>
+  </div>
+</section>

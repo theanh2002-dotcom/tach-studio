@@ -1,0 +1,235 @@
+<div class="pt-28 pb-20 md:pt-36 md:pb-28 min-h-screen bg-[#FAF6F0]">
+  <div class="max-w-5xl mx-auto px-6">
+    
+    <!-- Title Banner -->
+    <div class="text-center max-w-2xl mx-auto mb-12">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white border border-[#C89965]/35 shadow-sm mb-4">
+        <span class="text-xs font-bold text-[#681423] uppercase tracking-wider">📤 Hệ Thống Tải Ảnh Tốc Độ Cao</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold text-[#681423] mb-3">
+        Gửi Ảnh & Đặt In Lấy Liền
+      </h1>
+      <p class="text-xs sm:text-sm text-[#2C1A1D]/75 font-sans leading-relaxed">
+        Chọn ảnh từ điện thoại hoặc máy tính (hỗ trợ JPG, PNG, HEIC và cả file ảnh gốc RAW máy ảnh đến 100MB). Tách Tách in nhiệt chất lượng cao, màu sắc sắc nét chuẩn studio!
+      </p>
+    </div>
+
+    <!-- SUCCESS STATE MODAL / CARD -->
+    <div *ngIf="isSuccess" class="bg-white rounded-3xl p-8 md:p-12 border border-[#C89965]/40 shadow-xl text-center max-w-xl mx-auto warm-shadow">
+      <div class="w-20 h-20 rounded-full bg-[#FAF6F0] border-2 border-[#C89965] text-[#681423] flex items-center justify-center text-4xl mx-auto mb-6 shadow-inner">
+        ✓
+      </div>
+      <h3 class="text-2xl font-serif font-bold text-[#681423] mb-3">Đặt In Ảnh Thành Công!</h3>
+      <p class="text-xs sm:text-sm text-[#2C1A1D]/80 font-sans leading-relaxed mb-6">
+        Ảnh của bạn đã được tải lên thư mục lưu trữ của Tách Tách Studio an toàn và thông báo đã được gửi tới quản lý. Chúng tôi sẽ liên hệ với bạn theo số điện thoại đã cung cấp để chốt in ngay nhé!
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button (click)="resetOrder()" class="px-7 py-3 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-semibold text-xs transition-all shadow">
+          Gửi Thêm Đơn In Khác
+        </button>
+        <a routerLink="/" class="px-7 py-3 rounded-full bg-white hover:bg-[#FAF6F0] text-[#681423] border border-[#681423]/40 font-semibold text-xs transition-all">
+          Về Trang Chủ
+        </a>
+      </div>
+    </div>
+
+    <!-- MAIN UPLOAD FORM -->
+    <div *ngIf="!isSuccess" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left Column: File Selector & Photo List -->
+      <div class="lg:col-span-7 space-y-6">
+        
+        <!-- DROPZONE / FILE SELECTOR -->
+        <div class="bg-white rounded-3xl p-8 border-2 border-dashed border-[#C89965]/60 hover:border-[#681423] transition-colors text-center relative group shadow-sm">
+          <input type="file" 
+                 multiple 
+                 accept="image/*,.cr2,.cr3,.nef,.arw,.dng,.raw,.heic,.heif" 
+                 (change)="onFilesSelected($event)" 
+                 [disabled]="isSubmitting"
+                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+          
+          <div class="w-16 h-16 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/30 flex items-center justify-center text-3xl mx-auto mb-4 group-hover:scale-105 transition-transform">
+            🖼️
+          </div>
+          
+          <h3 class="font-serif text-lg font-bold text-[#681423] mb-1.5">
+            Bấm vào đây để chọn ảnh từ thiết bị
+          </h3>
+          <p class="text-xs text-[#2C1A1D]/70 font-sans max-w-sm mx-auto mb-3">
+            Hỗ trợ chọn nhiều ảnh cùng lúc: JPG, PNG, WEBP, HEIC và các định dạng RAW máy ảnh (Tối đa 100 MB / file).
+          </p>
+          <span class="inline-block px-4 py-1.5 rounded-full bg-[#FAF6F0] text-xs font-semibold text-[#C89965] border border-[#C89965]/30">
+            + Chọn Thêm Ảnh
+          </span>
+        </div>
+
+        <!-- ERROR MESSAGE ALERT -->
+        <div *ngIf="errorMessage" class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-sans flex items-start gap-3">
+          <span class="text-base">⚠️</span>
+          <div class="flex-1">{{ errorMessage }}</div>
+        </div>
+
+        <!-- LIST OF SELECTED PHOTOS -->
+        <div *ngIf="selectedPhotos.length > 0" class="bg-white rounded-3xl p-6 border border-[#E8DDD2] shadow-sm">
+          <div class="flex items-center justify-between pb-4 border-b border-[#E8DDD2] mb-4">
+            <h4 class="font-serif font-bold text-base text-[#681423]">
+              Danh Sách Ảnh Đã Chọn ({{ selectedPhotos.length }} ảnh)
+            </h4>
+            <span class="text-xs text-[#2C1A1D]/60 font-sans">
+              Tổng số bản in: <b>{{ totalQuantity }}</b>
+            </span>
+          </div>
+
+          <div class="space-y-3.5 max-h-[460px] overflow-y-auto pr-2 custom-scroll">
+            <div *ngFor="let item of selectedPhotos; let i = index" 
+                 class="flex items-center justify-between gap-4 p-3 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2]/80 hover:border-[#C89965] transition-all">
+              
+              <!-- Thumbnail preview & Name -->
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-14 h-14 rounded-xl overflow-hidden bg-[#E8DDD2] shrink-0 border border-[#C89965]/30">
+                  <img *ngIf="item.previewUrl" [src]="item.previewUrl" alt="Preview" class="w-full h-full object-cover" />
+                  <div *ngIf="!item.previewUrl" class="w-full h-full flex items-center justify-center text-xs font-bold text-[#681423]">
+                    RAW
+                  </div>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-xs font-semibold text-[#2C1A1D] truncate max-w-[180px] sm:max-w-xs" [title]="item.file.name">
+                    {{ item.file.name }}
+                  </p>
+                  <p class="text-[11px] text-[#2C1A1D]/60 font-sans mt-0.5">
+                    {{ (item.file.size / 1024 / 1024) | number:'1.1-2' }} MB
+                  </p>
+                </div>
+              </div>
+
+              <!-- Quantity Controls & Delete Button -->
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center bg-white rounded-xl border border-[#E8DDD2] shadow-sm p-0.5">
+                  <button type="button" 
+                          (click)="decreaseQty(i)" 
+                          [disabled]="isSubmitting"
+                          class="w-7 h-7 flex items-center justify-center text-xs font-bold text-[#681423] hover:bg-[#FAF6F0] rounded-lg">
+                    -
+                  </button>
+                  <span class="w-8 text-center text-xs font-bold text-[#2C1A1D]">
+                    {{ item.quantity }}
+                  </span>
+                  <button type="button" 
+                          (click)="increaseQty(i)" 
+                          [disabled]="isSubmitting"
+                          class="w-7 h-7 flex items-center justify-center text-xs font-bold text-[#681423] hover:bg-[#FAF6F0] rounded-lg">
+                    +
+                  </button>
+                </div>
+
+                <button type="button" 
+                        (click)="removeFile(i)" 
+                        [disabled]="isSubmitting"
+                        title="Xoá ảnh này"
+                        class="w-8 h-8 rounded-xl text-red-500 hover:bg-red-50 flex items-center justify-center transition-colors">
+                  ✕
+                </button>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Customer Info & Pricing Summary -->
+      <div class="lg:col-span-5 space-y-6">
+        
+        <div class="bg-white rounded-3xl p-7 border border-[#E8DDD2] shadow-sm warm-shadow">
+          <h3 class="font-serif text-xl font-bold text-[#681423] mb-5">
+            Thông Tin Nhận Ảnh
+          </h3>
+
+          <div class="space-y-4 mb-6">
+            <div>
+              <label class="block text-xs font-bold text-[#2C1A1D] uppercase tracking-wider mb-1.5">
+                Họ và Tên *
+              </label>
+              <input type="text" 
+                     [(ngModel)]="clientName" 
+                     [disabled]="isSubmitting"
+                     placeholder="Ví dụ: Hoàng Mai Linh" 
+                     class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] transition-colors outline-none" />
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-[#2C1A1D] uppercase tracking-wider mb-1.5">
+                Số Điện Thoại Zalo *
+              </label>
+              <input type="tel" 
+                     [(ngModel)]="clientPhone" 
+                     [disabled]="isSubmitting"
+                     placeholder="Ví dụ: 0987654321" 
+                     class="w-full px-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E8DDD2] focus:border-[#681423] focus:bg-white text-xs sm:text-sm text-[#2C1A1D] transition-colors outline-none" />
+              <p class="text-[11px] text-[#2C1A1D]/60 mt-1">Số điện thoại để Tách Tách gửi ảnh xem trước và ship ảnh.</p>
+            </div>
+          </div>
+
+          <!-- PRICING BREAKDOWN -->
+          <div class="border-t border-[#E8DDD2] pt-5 space-y-3 font-sans text-xs sm:text-sm text-[#2C1A1D]/80 mb-6">
+            <div class="flex justify-between">
+              <span>Số lượng file độc bản:</span>
+              <span class="font-semibold">{{ selectedPhotos.length }} ảnh</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Tổng số bản in yêu cầu:</span>
+              <span class="font-semibold">{{ totalQuantity }} bản</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span>Đơn giá in:</span>
+              <div class="text-right">
+                <span class="font-bold text-[#681423]">{{ unitPrice | currency:'VND':'symbol':'1.0-0' }}</span>
+                <span *ngIf="discountApplied" class="ml-1 text-[11px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold">
+                  Giá ưu đãi > 5 ảnh
+                </span>
+              </div>
+            </div>
+            
+            <div class="border-t border-dashed border-[#E8DDD2] pt-3 flex justify-between items-baseline">
+              <span class="font-serif font-bold text-base text-[#681423]">Tổng Thanh Toán:</span>
+              <span class="font-serif font-extrabold text-2xl text-[#681423]">
+                {{ totalPrice | currency:'VND':'symbol':'1.0-0' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- UPLOAD PROGRESS BAR -->
+          <div *ngIf="isSubmitting" class="mb-6 bg-[#FAF6F0] p-4 rounded-2xl border border-[#C89965]/30">
+            <div class="flex justify-between items-center text-xs font-bold text-[#681423] mb-2">
+              <span>Đang tải file {{ currentUploadingIndex }}/{{ selectedPhotos.length }}...</span>
+              <span>{{ uploadProgress }}%</span>
+            </div>
+            <div class="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-[#681423] to-[#C89965] transition-all duration-300" 
+                   [style.width.%]="uploadProgress"></div>
+            </div>
+            <p *ngIf="currentUploadingFileName" class="text-[10px] text-[#2C1A1D]/60 truncate mt-1.5">
+              Đang đẩy: {{ currentUploadingFileName }}
+            </p>
+          </div>
+
+          <!-- SUBMIT BUTTON -->
+          <button type="button" 
+                  (click)="submitOrder()" 
+                  [disabled]="isSubmitting || selectedPhotos.length === 0"
+                  class="w-full py-4 rounded-full bg-[#681423] hover:bg-[#7E1B2E] disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+            <span *ngIf="isSubmitting" class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            <span>{{ isSubmitting ? 'Đang Đẩy Ảnh & Xử Lý Đơn...' : 'Xác Nhận & Đẩy Ảnh In Ngay' }}</span>
+          </button>
+
+          <p class="text-[11px] text-center text-[#2C1A1D]/60 mt-3 font-sans">
+            🔒 Ảnh được mã hoá và tải trực tiếp vào Google Drive của Tách Tách Studio.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>

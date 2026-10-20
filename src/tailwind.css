@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-primary: #681423;
+  --color-primary-hover: #7E1B2E;
+  --color-primary-light: #F4EBEB;
+  --color-accent: #C89965;
+  --color-accent-hover: #B78753;
+  --color-accent-light: #F7EFE2;
+  --color-surface-base: #FAF6F0;
+  --color-surface-card: #FFFFFF;
+  --color-on-surface: #2C1A1D;
+  --color-muted: #7A6669;
+  --color-border: #E8DDD2;
+
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  
+  --radius-soft: 16px;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface-base);
+    color: var(--color-on-surface);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    color: var(--color-primary);
+  }
+}
+
+@layer utilities {
+  /* Warm subtle shadow */
+  .warm-shadow {
+    box-shadow: 0 16px 36px -10px rgba(104, 20, 35, 0.08);
+  }
+  
+  .warm-shadow:hover {
+    box-shadow: 0 24px 48px -12px rgba(104, 20, 35, 0.14);
+  }
+
+  .warm-glow {
+    box-shadow: 0 0 30px rgba(200, 153, 101, 0.25);
+  }
+  
+  /* Glassmorphism for Tách Tách */
+  .glass-tach {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(200, 153, 101, 0.2);
+  }
+
+  /* Wine to Caramel gradient text */
+  .text-brand-gradient {
+    background: linear-gradient(135deg, #681423 0%, #C89965 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}

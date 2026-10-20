@@ -1,0 +1,410 @@
+<!-- Gallery Page - Mobile First Design -->
+<div class="gallery-page" *ngIf="!isLoading()">
+
+  <!-- ============================================================== -->
+  <!-- CASE 1: LUỒNG XEM PHIÊN RIÊNG (SESSION FLOW - khi quét QR sau chụp) -->
+  <!-- ============================================================== -->
+  <ng-container *ngIf="isSingleSession()">
+    <!-- Header: Đếm ảnh & Toggle chế độ xem Slideshow / Grid -->
+    <div class="gallery-header">
+      <div class="header-meta">
+        <span class="meta-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="meta-icon">
+            <path fill-rule="evenodd"
+              d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+              clip-rule="evenodd" />
+          </svg>
+          {{ photoCount() }} ảnh/video
+        </span>
+        <span class="meta-badge meta-badge--live" *ngIf="isPolling()">
+          <span class="pulse-dot"></span>
+          Đang cập nhật
+        </span>
+
+        <!-- View Mode Toggle Group -->
+        <div class="toggle-mode-group" *ngIf="photoCount() > 0">
+          <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'slideshow'" (click)="viewMode.set('slideshow')" title="Xem trình chiếu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </button>
+          <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Xem dạng lưới">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN PHOTO VIEWER (Chế độ xem trình chiếu ảnh lớn) -->
+    <div class="gallery-main-photo" *ngIf="photoCount() > 0 && viewMode() === 'slideshow'"
+         (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEndMain($event)">
+      <div class="main-photo-container">
+        <!-- Counter badge -->
+        <div class="photo-counter">
+          {{ selectedIndex() + 1 }}/{{ photoCount() }}
+        </div>
+
+        <!-- Nav arrows -->
+        <button class="nav-arrow nav-arrow--left" (click)="navigatePrev()" *ngIf="photoCount() > 1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <button class="nav-arrow nav-arrow--right" (click)="navigateNext()" *ngIf="photoCount() > 1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+
+        <!-- Main Image Layer -->
+        <div class="main-photo-layer">
+          <ng-container *ngFor="let item of visibleMainPhotos()">
+            <div class="image-wrapper"
+                 [style.opacity]="item.originalIndex === selectedIndex() ? '1' : '0'"
+                 [style.visibility]="item.originalIndex === selectedIndex() ? 'visible' : 'hidden'"
+                 [style.pointer-events]="item.originalIndex === selectedIndex() ? 'auto' : 'none'">
+              
+              <ng-container *ngIf="isVideo(item.photo); else mainPhotoImage">
+                <video [src]="getVideoPreviewSrc(item.photo)"
+                       class="main-photo-video"
+                       controls
+                       playsinline
+                       preload="metadata"
+                       [attr.aria-label]="item.photo.name || 'Video sự kiện'"
+                       (click)="$event.stopPropagation()"
+                       (error)="onMainError(item.photo)"></video>
+              </ng-container>
+
+              <ng-template #mainPhotoImage>
+                <!-- Blur background -->
+                <img [src]="getThumbSrc(item.photo)"
+                     class="blur-background"
+                     [alt]="''"
+                     referrerpolicy="no-referrer" />
+
+                <!-- Main photo 2560px -->
+                <img [src]="getPreviewSrc(item.photo)"
+                     class="main-photo-img"
+                     [class.main-photo-img--loaded]="loadedImages().has(item.photo.mediaId)"
+                     [alt]="item.photo.name"
+                     fetchpriority="high"
+                     referrerpolicy="no-referrer"
+                     (load)="onImageLoad(item.photo.mediaId)"
+                     (click)="openLightbox(item.originalIndex)"
+                     (error)="onMainError(item.photo)" />
+              </ng-template>
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="main-photo-actions">
+          <button class="action-btn" [disabled]="isDownloading() || isZippingSession()" (click)="downloadPhoto(selectedPhoto())" title="Tải ảnh này">
+            <span *ngIf="isDownloading()" class="spinner-inline"></span>
+            <svg *ngIf="!isDownloading()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </button>
+          <button class="action-btn" (click)="openLightbox(selectedIndex())" title="Phóng to">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHOTO GRID VIEW IN SESSION -->
+    <div class="photo-grid" *ngIf="photoCount() > 0 && viewMode() === 'grid'">
+      <div *ngFor="let photo of photos(); let i = index" 
+           class="grid-item" 
+           [class.grid-item--new]="photo.isNew"
+           (click)="openLightbox(i)">
+        <ng-container *ngIf="isVideo(photo); else gridImg">
+          <video [src]="getVideoPreviewSrc(photo)"
+                 preload="metadata"
+                 muted
+                 playsinline
+                 class="grid-video-preview"></video>
+        </ng-container>
+        <ng-template #gridImg>
+          <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
+        </ng-template>
+        <span class="video-badge" *ngIf="isVideo(photo)">▶ VIDEO</span>
+        
+        <div class="grid-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          </svg>
+        </div>
+        <span class="grid-new-badge" *ngIf="photo.isNew">Mới</span>
+      </div>
+    </div>
+
+    <!-- STICKY BOTTOM BAR (Dải thumbnail & Nút tải trọn bộ) -->
+    <div class="gallery-bottom-bar" *ngIf="viewMode() === 'slideshow'">
+      <div class="thumbnail-section" *ngIf="photoCount() > 1">
+        <div class="thumbnail-strip">
+          <div *ngFor="let photo of photos(); let i = index" class="thumbnail-item"
+            [class.thumbnail-item--active]="i === selectedIndex()" [class.thumbnail-item--new]="photo.isNew"
+            (click)="selectPhoto(i)">
+            <ng-container *ngIf="isVideo(photo); else stripImg">
+              <video [src]="getVideoPreviewSrc(photo)"
+                     preload="metadata"
+                     muted
+                     playsinline
+                     class="strip-video-preview"></video>
+            </ng-container>
+            <ng-template #stripImg>
+              <img [src]="getPreviewSrc(photo)" [alt]="photo.name" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
+            </ng-template>
+            <span class="video-badge video-badge--small" *ngIf="isVideo(photo)">▶</span>
+            <span class="new-badge" *ngIf="photo.isNew">Mới</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="download-all-section" *ngIf="selectedPhoto()">
+        <button class="download-all-btn download-all-btn--secondary" [disabled]="isDownloading() || isZippingSession()" (click)="downloadPhoto(selectedPhoto())" title="Tải ảnh này về máy">
+          <span *ngIf="isDownloading()" class="spinner-inline"></span>
+          <svg *ngIf="!isDownloading()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {{ isDownloading() ? 'Đang tải...' : (isVideo(selectedPhoto()) ? 'Tải video này' : 'Tải ảnh này') }}
+        </button>
+
+        <button class="download-all-btn" [disabled]="isZippingSession() || isDownloading()" (click)="downloadActiveSession()" *ngIf="photoCount() > 1" title="Lưu trọn bộ ảnh vào máy">
+          <span *ngIf="isZippingSession()" class="spinner-inline"></span>
+          <svg *ngIf="!isZippingSession()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          {{ isZippingSession() ? (zipSessionProgress() || 'Đang xử lý...') : (isMobileDevice() ? ('Lưu trọn bộ (' + photoCount() + ')') : ('Tải trọn bộ (' + photoCount() + ')')) }}
+        </button>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ============================================================== -->
+  <!-- CASE 2: LUỒNG XEM TOÀN BỘ SỰ KIỆN (EVENT FLOW - Lưới các phiên) -->
+  <!-- ============================================================== -->
+  <ng-container *ngIf="!isSingleSession()">
+    <!-- Header: Đếm tổng số ảnh & Trạng thái Live -->
+    <div class="gallery-header">
+      <div class="header-meta">
+        <span class="meta-badge">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="meta-icon">
+            <path fill-rule="evenodd"
+              d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+              clip-rule="evenodd" />
+          </svg>
+          {{ photoCount() }} ảnh
+        </span>
+        <span class="meta-badge meta-badge--live" *ngIf="isPolling()">
+          <span class="pulse-dot"></span>
+          Đang cập nhật
+        </span>
+      </div>
+    </div>
+
+    <!-- Lưới ảnh toàn sự kiện: Mỗi ô là ảnh in của 1 phiên -->
+    <div class="photo-grid" *ngIf="photoCount() > 0">
+      <div *ngFor="let photo of photos(); let i = index" 
+           class="grid-item" 
+           [class.grid-item--new]="photo.isNew"
+           (click)="openSessionByPhoto(photo, i)">
+        <ng-container *ngIf="isVideo(photo); else eventGridImg">
+          <video [src]="getVideoPreviewSrc(photo)"
+                 preload="metadata"
+                 muted
+                 playsinline
+                 class="grid-video-preview"></video>
+        </ng-container>
+        <ng-template #eventGridImg>
+          <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
+        </ng-template>
+        
+        <span class="video-badge" *ngIf="isVideo(photo)">▶ VIDEO</span>
+        <span class="session-badge-pill" *ngIf="photo.sessionInfo?.shotCount">
+          +{{ photo.sessionInfo?.shotCount }}<span *ngIf="photo.sessionInfo?.hasBts"> • ▶</span>
+        </span>
+        
+        <div class="grid-overlay">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+          </svg>
+        </div>
+        <span class="grid-new-badge" *ngIf="photo.isNew">Mới</span>
+      </div>
+    </div>
+
+    <!-- Nút tải tất cả ảnh sự kiện dạng file ZIP -->
+    <div class="download-all-grid-section" *ngIf="photoCount() > 0">
+      <button class="download-all-btn" [disabled]="isZippingAll()" (click)="downloadAllPhotos()">
+        <span *ngIf="isZippingAll()" class="spinner-inline"></span>
+        <svg *ngIf="!isZippingAll()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        {{ isZippingAll() ? (zipAllProgress() || 'Đang đóng gói file ZIP...') : 'Tải tất cả ảnh (ZIP • ' + photoCount() + ')' }}
+      </button>
+    </div>
+  </ng-container>
+
+</div>
+
+<!-- ===== LOADING STATE ===== -->
+<div class="loading-state" *ngIf="isLoading()">
+  <div class="loading-spinner">
+    <div class="spinner-ring"></div>
+    <div class="spinner-ring spinner-ring--delay"></div>
+  </div>
+  <p class="loading-text">Đang tải ảnh sự kiện...</p>
+</div>
+
+<!-- ===== EMPTY STATE ===== -->
+<div class="empty-state" *ngIf="!isLoading() && photoCount() === 0 && !errorMessage()">
+  <div class="empty-icon-wrapper">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
+      <rect x="8" y="12" width="48" height="40" rx="4" />
+      <circle cx="22" cy="28" r="5" />
+      <path d="M8 44l14-14 10 10 8-8 16 16" />
+    </svg>
+  </div>
+  <h3 class="empty-title">Ảnh đang được chuẩn bị</h3>
+  <p class="empty-desc">Hệ thống đang xử lý và tải ảnh lên.<br />Ảnh sẽ tự động hiện ra khi sẵn sàng.</p>
+  <div class="empty-pulse">
+    <span class="pulse-dot pulse-dot--lg"></span>
+    <span>Đang chờ...</span>
+  </div>
+  <button type="button" class="download-all-btn" (click)="retryLoad()">Thử lại</button>
+</div>
+
+<!-- ===== ERROR STATE ===== -->
+<div class="empty-state" *ngIf="errorMessage()">
+  <p class="error-text">{{ errorMessage() }}</p>
+  <button type="button" class="download-all-btn" (click)="retryLoad()">Thử lại</button>
+</div>
+
+<!-- ===== FULLSCREEN LIGHTBOX / SESSION VIEWER ===== -->
+<div class="lightbox" *ngIf="showLightbox()" (click)="closeLightbox()" (touchstart)="onTouchStart($event)"
+  (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd($event)">
+  <div class="lightbox-backdrop"></div>
+
+  <!-- Close Button -->
+  <button class="lightbox-close" (click)="closeLightbox()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  </button>
+
+  <!-- Lightbox Counter / Title -->
+  <div class="lightbox-counter">
+    <ng-container *ngIf="activeSession(); else normalCounter">
+      {{ activeSessionMediaIndex() + 1 }} / {{ activeSessionMedia().length }}
+    </ng-container>
+    <ng-template #normalCounter>
+      {{ lightboxIndex() + 1 }} / {{ photoCount() }}
+    </ng-template>
+  </div>
+
+  <!-- Lightbox Media Stage -->
+  <div class="lightbox-content" (click)="$event.stopPropagation()">
+    <ng-container *ngIf="currentLightboxMedia() as media">
+      <ng-container *ngIf="isVideo(media); else lightboxPhotoImage">
+        <video [src]="getVideoPreviewSrc(media)"
+               class="lightbox-video"
+               controls
+               playsinline
+               preload="metadata"
+               [attr.aria-label]="media?.name || 'Video sự kiện'"
+               (error)="onMainError(media)"></video>
+      </ng-container>
+      <ng-template #lightboxPhotoImage>
+        <img [src]="getLightboxSrc(media)"
+             [alt]="media?.name || 'Ảnh sự kiện'"
+             class="lightbox-img"
+             fetchpriority="high"
+             referrerpolicy="no-referrer"
+             (error)="onMainError(media)" />
+      </ng-template>
+    </ng-container>
+  </div>
+
+  <!-- Lightbox Nav Arrows -->
+  <button class="lightbox-nav lightbox-nav--left" (click)="$event.stopPropagation(); lightboxPrev()"
+    *ngIf="(activeSession() ? activeSessionMedia().length : photoCount()) > 1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+      stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  </button>
+  <button class="lightbox-nav lightbox-nav--right" (click)="$event.stopPropagation(); lightboxNext()"
+    *ngIf="(activeSession() ? activeSessionMedia().length : photoCount()) > 1">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+      stroke-linejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  </button>
+
+  <!-- Filmstrip thumbnails of current session inside Lightbox -->
+  <div class="lightbox-session-strip" *ngIf="activeSession() && activeSessionMedia().length > 1" (click)="$event.stopPropagation()">
+    <div *ngFor="let m of activeSessionMedia(); let idx = index"
+         class="lightbox-session-thumb"
+         [class.lightbox-session-thumb--active]="idx === activeSessionMediaIndex()"
+         (click)="selectSessionMedia(idx)">
+      <ng-container *ngIf="isVideo(m); else lbStripImg">
+        <video [src]="getVideoPreviewSrc(m)"
+               preload="metadata"
+               muted
+               playsinline
+               class="lb-strip-video-preview"></video>
+      </ng-container>
+      <ng-template #lbStripImg>
+        <img [src]="getPreviewSrc(m)" [alt]="m.name" referrerpolicy="no-referrer" (error)="onThumbError(m)" />
+      </ng-template>
+      <span class="video-badge video-badge--small" *ngIf="isVideo(m)">▶</span>
+    </div>
+  </div>
+
+  <!-- Lightbox Action Bar -->
+  <div class="lightbox-actions" (click)="$event.stopPropagation()">
+    <button class="lightbox-download" [disabled]="isDownloading() || isZippingSession()" (click)="downloadCurrentLightboxMedia()" title="Tải ảnh này">
+      <span *ngIf="isDownloading()" class="spinner-inline"></span>
+      <svg *ngIf="!isDownloading()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+      {{ isDownloading() ? 'Đang tải...' : (isVideo(currentLightboxMedia()) ? 'Tải video này' : 'Tải ảnh này') }}
+    </button>
+    <button class="lightbox-download lightbox-download--session" [disabled]="isZippingSession() || isDownloading()" (click)="downloadActiveSession()" *ngIf="currentBatchCount() > 1" title="Lưu trọn bộ">
+      <span *ngIf="isZippingSession()" class="spinner-inline"></span>
+      <svg *ngIf="!isZippingSession()" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+        stroke-linejoin="round">
+        <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      {{ isZippingSession() ? (zipSessionProgress() || 'Đang xử lý...') : (isMobileDevice() ? ('Lưu trọn bộ (' + currentBatchCount() + ')') : ('Tải trọn bộ (' + currentBatchCount() + ')')) }}
+    </button>
+  </div>
+</div>

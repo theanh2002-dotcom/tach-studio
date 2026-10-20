@@ -1,0 +1,281 @@
+<!-- HERO SECTION -->
+<section class="relative pt-32 pb-20 md:pt-40 md:pb-28 overflow-hidden bg-gradient-to-b from-[#FAF6F0] via-[#F6ECE0] to-[#FAF6F0]">
+  <!-- Decorative background elements -->
+  <div class="absolute top-12 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-[#C89965]/10 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="absolute top-48 right-10 w-72 h-72 bg-[#681423]/5 rounded-full blur-2xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-6 relative z-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+      
+      <!-- Left Content -->
+      <div class="lg:col-span-7 text-center lg:text-left flex flex-col items-center lg:items-start">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-[#C89965]/35 shadow-sm mb-6">
+          <span class="w-2.5 h-2.5 rounded-full bg-[#681423] animate-ping"></span>
+          <span class="text-xs font-semibold text-[#681423] tracking-wide uppercase">
+            Phòng Chụp Photobooth Tự Động Hàn Quốc
+          </span>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-[#681423] leading-[1.15] mb-6">
+          Nghe tiếng <span class="text-brand-gradient italic">"Tách Tách"</span><br>
+          Bắt trọn nụ cười rạng rỡ!
+        </h1>
+
+        <p class="text-base sm:text-lg text-[#2C1A1D]/80 font-sans max-w-xl mb-8 leading-relaxed">
+          Không gian phòng chụp tự do 100% riêng tư. Tự tin bung lụa tạo dáng với remote bấm tay, ánh sáng studio nịnh da, kho 200+ phụ kiện siêu xinh và in ảnh lấy ngay sau 30 giây.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <a routerLink="/dat-lich" 
+             class="w-full sm:w-auto px-8 py-4 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all text-center flex items-center justify-center gap-2">
+            <span>Đặt Lịch Phòng Chụp Ngay</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </a>
+
+          <a routerLink="/in-anh" 
+             class="w-full sm:w-auto px-7 py-4 rounded-full bg-white hover:bg-[#FAF6F0] text-[#681423] font-semibold text-sm border-2 border-[#C89965]/40 hover:border-[#C89965] shadow-sm transition-all text-center flex items-center justify-center gap-2">
+            <span>Gửi Ảnh Đặt In (Đẩy Ảnh)</span>
+            <span class="text-xs bg-[#C89965]/20 text-[#681423] font-bold px-2 py-0.5 rounded-full">Lấy Liền</span>
+          </a>
+        </div>
+
+        <!-- Mini Stats -->
+        <div class="grid grid-cols-3 gap-6 sm:gap-10 mt-12 pt-8 border-t border-[#C89965]/20 w-full max-w-md">
+          <div class="text-center lg:text-left">
+            <div class="text-2xl sm:text-3xl font-serif font-bold text-[#681423]">100%</div>
+            <div class="text-xs text-[#2C1A1D]/70 font-sans mt-0.5">Riêng tư khép kín</div>
+          </div>
+          <div class="text-center lg:text-left">
+            <div class="text-2xl sm:text-3xl font-serif font-bold text-[#C89965]">30 Giây</div>
+            <div class="text-xs text-[#2C1A1D]/70 font-sans mt-0.5">In ảnh lấy liền</div>
+          </div>
+          <div class="text-center lg:text-left">
+            <div class="text-2xl sm:text-3xl font-serif font-bold text-[#681423]">200+</div>
+            <div class="text-xs text-[#2C1A1D]/70 font-sans mt-0.5">Phụ kiện & Đạo cụ</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Visual (Hero Photo Cards & Logo Badge) -->
+      <div class="lg:col-span-5 flex justify-center relative">
+        <!-- Floating polaroid composition -->
+        <div class="relative w-full max-w-md">
+          <!-- Main Polaroid 1 -->
+          <div class="bg-white p-3.5 pb-10 rounded-2xl shadow-xl border border-[#C89965]/30 transform -rotate-3 hover:rotate-0 transition-transform duration-300">
+            <div class="relative rounded-xl overflow-hidden aspect-[4/5] bg-[#E8DDD2]">
+              <img src="photos/photo1.png" alt="Tách Tách Studio Moment" class="w-full h-full object-cover" />
+              <div class="absolute top-3 right-3 bg-[#681423]/90 text-white text-[11px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm">
+                Photostrip 1x4
+              </div>
+            </div>
+            <div class="mt-4 flex items-center justify-between px-2">
+              <span class="font-serif italic font-bold text-[#681423] text-lg">Tách Tách Moments</span>
+              <span class="text-xs text-[#C89965] font-sans font-medium">#SelfPhotoStudio</span>
+            </div>
+          </div>
+
+          <!-- Logo Badge Floating -->
+          <div class="absolute -bottom-8 -left-6 sm:-left-10 w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-2xl bg-white hover:scale-105 transition-transform duration-300">
+            <img src="/logo.jpg" alt="Tách Tách Logo" class="w-full h-full object-cover" />
+          </div>
+
+          <!-- Floating Sticker Feature -->
+          <div class="absolute -top-6 -right-4 sm:-right-8 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-[#C89965]/30 flex items-center gap-2.5 transform rotate-6">
+            <span class="text-xl">✨</span>
+            <div class="text-left">
+              <div class="text-xs font-bold text-[#681423]">Quét QR Tức Thì</div>
+              <div class="text-[10px] text-[#2C1A1D]/70 font-medium">Nhận ảnh gốc + video BTS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 1: GIỚI THIỆU PHÒNG CHỤP PHOTOTBOOTH (STUDIO HIGHLIGHTS) -->
+<section class="py-20 md:py-28 bg-white border-y border-[#C89965]/15">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] tracking-widest uppercase mb-2 inline-block">Trải Nghiệm Độc Quyền</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-4">
+        Khám Phá Phòng Chụp Tại Tách Tách
+      </h2>
+      <p class="text-sm sm:text-base text-[#2C1A1D]/70 font-sans leading-relaxed">
+        Tách Tách tập trung duy nhất vào 1 dịch vụ chuyên sâu: <b>Phòng chụp Photobooth tự động</b>. Từng chi tiết từ ánh sáng, camera, góc nhìn đến phụ kiện đều được thiết kế để bạn có bộ ảnh lung linh nhất!
+      </p>
+    </div>
+
+    <!-- 4 Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div *ngFor="let item of studioHighlights" 
+           class="p-6 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] hover:border-[#C89965] transition-all duration-300 hover:-translate-y-1 warm-shadow flex flex-col">
+        <div class="w-14 h-14 rounded-2xl bg-white border border-[#C89965]/25 flex items-center justify-center text-2xl mb-5 shadow-sm">
+          {{ item.icon }}
+        </div>
+        <h3 class="font-serif text-lg font-bold text-[#681423] mb-2.5">
+          {{ item.title }}
+        </h3>
+        <p class="text-xs sm:text-sm text-[#2C1A1D]/75 leading-relaxed font-sans mt-auto">
+          {{ item.desc }}
+        </p>
+      </div>
+    </div>
+
+    <!-- Link chi tiết sang trang phòng chụp -->
+    <div class="mt-12 text-center">
+      <a routerLink="/phong-chup" 
+         class="inline-flex items-center gap-2 text-sm font-bold text-[#681423] hover:text-[#C89965] transition-colors pb-1 border-b-2 border-[#681423]/30 hover:border-[#C89965]">
+        <span>Xem toàn bộ chi tiết phòng chụp, bảng phông nền & kho đạo cụ</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 2: QUY TRÌNH CHỤP ẢNH 4 BƯỚC -->
+<section class="py-20 md:py-28 bg-[#FAF6F0]">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] tracking-widest uppercase mb-2 inline-block">Dễ Dàng & Nhanh Chóng</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423]">
+        4 Bước Có Ngay Ảnh Xinh
+      </h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div *ngFor="let s of steps" class="relative group">
+        <div class="bg-white p-7 rounded-2xl border border-[#E8DDD2] h-full flex flex-col shadow-sm group-hover:shadow-md transition-all duration-300">
+          <div class="text-4xl font-serif font-extrabold text-[#C89965]/40 mb-4 group-hover:text-[#681423] transition-colors">
+            {{ s.step }}
+          </div>
+          <h4 class="font-serif text-lg font-bold text-[#681423] mb-2">
+            {{ s.title }}
+          </h4>
+          <p class="text-xs sm:text-sm text-[#2C1A1D]/70 font-sans leading-relaxed">
+            {{ s.desc }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: BẢNG GIÁ GÓI CHỤP TẠI STUDIO -->
+<section class="py-20 md:py-28 bg-white border-t border-[#C89965]/15">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="text-center max-w-2xl mx-auto mb-16">
+      <span class="text-xs font-bold text-[#C89965] tracking-widest uppercase mb-2 inline-block">Giá Rõ Ràng & Tiết Kiệm</span>
+      <h2 class="text-3xl sm:text-4xl font-serif font-bold text-[#681423] mb-3">
+        Bảng Giá Chụp Photobooth Studio
+      </h2>
+      <p class="text-sm text-[#2C1A1D]/70 font-sans">
+        Đã bao gồm: Tự do chụp không giới hạn, in ảnh lấy ngay, nhận toàn bộ file gốc và video hậu trường qua QR.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+      <div *ngFor="let pkg of packages" 
+           class="rounded-3xl p-8 flex flex-col transition-all duration-300 relative"
+           [ngClass]="pkg.popular 
+             ? 'bg-[#FAF6F0] border-2 border-[#681423] shadow-xl md:-translate-y-2' 
+             : 'bg-white border border-[#E8DDD2] hover:border-[#C89965] shadow-sm'">
+        
+        <!-- Popular Badge -->
+        <div *ngIf="pkg.popular" 
+             class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#681423] text-white text-[11px] font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow">
+          Được Yêu Thích Nhất
+        </div>
+
+        <div class="mb-6">
+          <h3 class="font-serif text-xl font-bold text-[#681423] mb-1">{{ pkg.name }}</h3>
+          <span class="text-xs text-[#2C1A1D]/60 font-sans">{{ pkg.subtitle }}</span>
+          
+          <div class="mt-4 flex items-baseline gap-2">
+            <span class="text-3xl sm:text-4xl font-serif font-bold text-[#681423]">{{ pkg.price }}</span>
+            <span class="text-xs text-[#2C1A1D]/60 font-sans">/ phiên {{ pkg.duration }}</span>
+          </div>
+
+          <div class="mt-3 text-xs font-semibold text-[#C89965] bg-[#C89965]/10 px-3 py-1.5 rounded-lg inline-block">
+            🎁 Bao gồm: {{ pkg.prints }}
+          </div>
+        </div>
+
+        <!-- Features list -->
+        <ul class="space-y-3 mb-8 flex-1 border-t border-[#E8DDD2] pt-6 font-sans text-xs sm:text-sm text-[#2C1A1D]/80">
+          <li *ngFor="let feat of pkg.features" class="flex items-start gap-2.5">
+            <span class="text-[#681423] font-bold mt-0.5">✓</span>
+            <span>{{ feat }}</span>
+          </li>
+        </ul>
+
+        <!-- CTA Button -->
+        <a routerLink="/dat-lich" 
+           [queryParams]="{ package: pkg.name }"
+           class="w-full py-3.5 rounded-full text-center text-xs sm:text-sm font-semibold transition-all shadow-sm"
+           [ngClass]="pkg.popular 
+             ? 'bg-[#681423] hover:bg-[#7E1B2E] text-white' 
+             : 'bg-white hover:bg-[#FAF6F0] text-[#681423] border border-[#681423]/40'">
+          Chọn Gói Này & Đặt Lịch
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: TÍNH NĂNG ĐẨY ẢNH & ĐẶT IN THEO YÊU CẦU (FEATURE SPOTLIGHT) -->
+<section class="py-20 md:py-24 bg-gradient-to-r from-[#681423] via-[#7E1B2E] to-[#681423] text-white relative overflow-hidden">
+  <div class="absolute -right-20 -top-20 w-80 h-80 rounded-full bg-[#C89965]/20 blur-3xl pointer-events-none"></div>
+  <div class="absolute -left-20 -bottom-20 w-80 h-80 rounded-full bg-[#FAF6F0]/10 blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-6xl mx-auto px-6 relative z-10">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      
+      <div class="lg:col-span-8">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-semibold text-[#F7EFE2] uppercase tracking-wider mb-4">
+          ★ Dịch Vụ Mở Rộng Tiện Lợi
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-serif font-bold text-white mb-4 leading-tight">
+          Bạn Có Ảnh Sẵn Trong Máy Điện Thoại?<br>
+          <span class="text-[#F7EFE2] italic">Đẩy Ảnh Ngay — Tách Tách In Liền Lấy Ngay!</span>
+        </h2>
+        <p class="text-sm sm:text-base text-white/85 font-sans leading-relaxed max-w-2xl mb-6">
+          Không cần phải đến studio, bạn chỉ cần chọn ảnh trực tiếp từ điện thoại hoặc máy tính (hỗ trợ cả ảnh gốc và file RAW máy ảnh lên đến 100MB). Hệ thống lưu trữ đám mây tốc độ cao của Tách Tách sẽ nhận file tức thì và chuẩn bị in chất lượng chuẩn triển lãm cho bạn!
+        </p>
+
+        <div class="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-white/90">
+          <div class="flex items-center gap-2">
+            <span class="text-[#C89965] font-bold">●</span>
+            <span>Giá in chỉ từ <b>15.000đ</b> / ảnh</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[#C89965] font-bold">●</span>
+            <span>Khổ ảnh: Dải Photostrip, 6x9cm, 10x15cm, Polaroid</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[#C89965] font-bold">●</span>
+            <span>Nhận tại tiệm hoặc ship hoả tốc</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lg:col-span-4 flex justify-center lg:justify-end">
+        <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center w-full max-w-sm">
+          <div class="w-16 h-16 rounded-full bg-[#C89965] text-white flex items-center justify-center text-3xl mx-auto mb-4 shadow">
+            📤
+          </div>
+          <h3 class="font-serif text-xl font-bold text-white mb-2">Đẩy Ảnh In Online</h3>
+          <p class="text-xs text-white/80 font-sans mb-6">
+            Tải lên trực tiếp an toàn, bảo mật tuyệt đối và tự động tính tổng tiền.
+          </p>
+          <a routerLink="/in-anh" 
+             class="block w-full py-3.5 rounded-full bg-[#C89965] hover:bg-[#B78753] text-[#2C1A1D] font-bold text-sm shadow-lg transition-all">
+            Gửi Ảnh In Ngay
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
