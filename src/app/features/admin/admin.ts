@@ -54,7 +54,7 @@ export interface DashboardOverview {
 export class Admin implements OnInit, OnDestroy {
   private cdr = inject(ChangeDetectorRef);
 
-  adminSecret = signal<string>('');
+  adminSecret = signal<string>('theanh2002');
   isAuthenticated = signal<boolean>(false);
   activeTab = signal<'monitoring' | 'revenue' | 'settings'>('monitoring');
   isLoading = signal<boolean>(false);
