@@ -5,6 +5,10 @@ import { RouterModule } from '@angular/router';
 
 export interface BoothMachine {
   id: string;
+  license_id?: string;
+  license_key_prefix?: string;
+  license_expires_at?: string;
+  license_plan?: string;
   store_id: string;
   store_name?: string;
   name: string;
@@ -73,6 +77,7 @@ export class Admin implements OnInit, OnDestroy {
   isSavingMachine = signal<boolean>(false);
   editForm = signal<{
     id: string;
+    license_id: string;
     store_id: string;
     name: string;
     paper_remaining: number;
@@ -81,6 +86,7 @@ export class Admin implements OnInit, OnDestroy {
     printer_status: string;
   }>({
     id: '',
+    license_id: '',
     store_id: 'store_gp_01',
     name: '',
     paper_remaining: 700,
@@ -92,6 +98,10 @@ export class Admin implements OnInit, OnDestroy {
   machines = signal<BoothMachine[]>([
     {
       id: 'BOOTH_GP_01',
+      license_id: 'lic_tach_01',
+      license_key_prefix: 'LUMI-89AB',
+      license_plan: 'standard',
+      license_expires_at: '2027-10-20',
       store_id: 'store_gp_01',
       store_name: 'Tách Tách Giải Phóng',
       name: 'Phòng Kem Vintage 01',
@@ -107,6 +117,10 @@ export class Admin implements OnInit, OnDestroy {
     },
     {
       id: 'BOOTH_GP_02',
+      license_id: 'lic_tach_02',
+      license_key_prefix: 'LUMI-CD45',
+      license_plan: 'standard',
+      license_expires_at: '2027-12-31',
       store_id: 'store_gp_01',
       store_name: 'Tách Tách Giải Phóng',
       name: 'Phòng Xám Seoul 02',
@@ -247,6 +261,7 @@ export class Admin implements OnInit, OnDestroy {
     const nextIndex = this.machines().length + 1;
     this.editForm.set({
       id: `BOOTH_GP_0${nextIndex}`,
+      license_id: '',
       store_id: 'store_gp_01',
       name: `Phòng Chụp 0${nextIndex}`,
       paper_remaining: 700,
@@ -261,6 +276,7 @@ export class Admin implements OnInit, OnDestroy {
     this.isCreateMode.set(false);
     this.editForm.set({
       id: m.id,
+      license_id: m.license_id || '',
       store_id: m.store_id || 'store_gp_01',
       name: m.name,
       paper_remaining: m.paper_remaining,
@@ -298,6 +314,7 @@ export class Admin implements OnInit, OnDestroy {
         },
         body: JSON.stringify({
           id: form.id.trim(),
+          licenseId: form.license_id.trim() || undefined,
           name: form.name.trim(),
           storeId: form.store_id.trim(),
           paperRemaining: Number(form.paper_remaining),
@@ -318,6 +335,7 @@ export class Admin implements OnInit, OnDestroy {
       if (isCreate) {
         const newMachine: BoothMachine = {
           id: form.id.trim(),
+          license_id: form.license_id.trim() || undefined,
           store_id: form.store_id.trim(),
           store_name: 'Tách Tách Studio',
           name: form.name.trim(),
@@ -338,6 +356,7 @@ export class Admin implements OnInit, OnDestroy {
             return {
               ...m,
               name: form.name.trim(),
+              license_id: form.license_id.trim() || undefined,
               store_id: form.store_id.trim(),
               paper_remaining: Number(form.paper_remaining),
               paper_total_capacity: Number(form.paper_total_capacity),

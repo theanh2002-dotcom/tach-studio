@@ -210,6 +210,12 @@
                   <span class="text-xs text-[#2C1A1D]/40">•</span>
                   <span class="text-xs text-[#C89965] font-semibold">{{ m.store_name || m.store_id }}</span>
                 </div>
+                <!-- Linked License Badge -->
+                <div *ngIf="m.license_key_prefix" class="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#681423] font-medium bg-[#FAF6F0] px-2 py-0.5 rounded-md border border-[#E8DDD2]/60 w-fit">
+                  <span>🔑 Bản quyền:</span>
+                  <span class="font-mono font-bold">{{ m.license_key_prefix }}****</span>
+                  <span *ngIf="m.license_expires_at" class="text-[#2C1A1D]/50 text-[10px]">(Hạn: {{ m.license_expires_at }})</span>
+                </div>
               </div>
 
               <!-- Status Badge -->
@@ -411,6 +417,17 @@
               <option value="store_hcm_01">Tách Tách Studio — Quận 1 (TP. HCM)</option>
               <option value="store_cg_01">Tách Tách Studio — Cầu Giấy (Hà Nội)</option>
             </select>
+          </div>
+
+          <!-- Mã Bản Quyền Liên Kết -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Mã Bản Quyền Liên Kết (License ID)</label>
+            <input type="text" [(ngModel)]="editForm().license_id"
+                   placeholder="vd: lic_xxxx (Tự động gán khi máy kích hoạt bản quyền)"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+              Liên kết trực tiếp buồng chụp này với License LumiBooth.
+            </span>
           </div>
 
           <div class="grid grid-cols-2 gap-4">
