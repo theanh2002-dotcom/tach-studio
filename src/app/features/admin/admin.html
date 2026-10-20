@@ -172,9 +172,17 @@
     <!-- ========================================== -->
     <div *ngIf="activeTab() === 'monitoring'" class="space-y-6">
       
-      <div class="flex items-center justify-between">
-        <h3 class="font-serif font-bold text-lg text-[#681423]">Tình Trạng Các Phòng Chụp (Thời Gian Thực)</h3>
-        <span class="text-xs text-[#2C1A1D]/60">Đồng bộ chu kỳ 3 phút / lần</span>
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h3 class="font-serif font-bold text-lg text-[#681423]">Tình Trạng Các Phòng Chụp (Thời Gian Thực)</h3>
+          <span class="text-xs text-[#2C1A1D]/60">Đồng bộ chu kỳ 3 phút / lần (In-place UPDATE)</span>
+        </div>
+        <button type="button" 
+                (click)="openCreateMachineModal()"
+                class="px-4 py-2 bg-[#681423] hover:bg-[#7E1B2E] text-white rounded-full text-xs font-semibold flex items-center gap-1.5 shadow transition-all">
+          <span>➕</span>
+          <span>Thêm Buồng Chụp Mới</span>
+        </button>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -186,7 +194,17 @@
           <div>
             <div class="flex items-start justify-between gap-3 mb-4">
               <div>
-                <h4 class="font-serif font-bold text-lg text-[#681423]">{{ m.name }}</h4>
+                <div class="flex items-center gap-2">
+                  <h4 class="font-serif font-bold text-lg text-[#681423]">{{ m.name }}</h4>
+                  <button type="button" (click)="openEditMachineModal(m)" title="Sửa thông tin buồng chụp"
+                          class="px-2 py-0.5 rounded-md border border-[#E8DDD2] hover:border-[#C89965] hover:bg-[#FAF6F0] text-[11px] font-semibold text-[#681423] flex items-center gap-1 transition-colors">
+                    <span>✏️ Sửa</span>
+                  </button>
+                  <button type="button" (click)="deleteMachine(m.id)" title="Xóa buồng chụp"
+                          class="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 text-xs transition-colors">
+                    <span>🗑️</span>
+                  </button>
+                </div>
                 <div class="flex items-center gap-2 mt-0.5">
                   <span class="text-xs text-[#2C1A1D]/60 font-mono">{{ m.id }}</span>
                   <span class="text-xs text-[#2C1A1D]/40">•</span>
@@ -335,6 +353,119 @@
         <div><b>Heartbeat API:</b> POST /v1/telemetry/heartbeat (chu kỳ 3 phút)</div>
         <div><b>Transaction API:</b> POST /v1/telemetry/transactions (bắn ngay khi thanh toán)</div>
         <div><b>Database:</b> Cloudflare D1 (tanhbooth-license-prod)</div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL: SỬA / THÊM MỚI PHÒNG CHỤP          -->
+    <!-- ========================================== -->
+    <div *ngIf="isMachineModalOpen()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-[#E8DDD2] relative max-h-[90vh] overflow-y-auto custom-scrollbar">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-[#E8DDD2] mb-6">
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">{{ isCreateMode() ? '➕' : '✏️' }}</span>
+            <div>
+              <h3 class="font-serif font-bold text-lg text-[#681423]">
+                {{ isCreateMode() ? 'Thêm Buồng Chụp Mới' : 'Sửa Thông Tin Phòng Chụp' }}
+              </h3>
+              <p class="text-xs text-[#2C1A1D]/60 font-sans">
+                {{ isCreateMode() ? 'Đăng ký thêm buồng chụp photobooth vào hệ thống' : 'Cập nhật tên phòng, cuộn giấy và máy ảnh' }}
+              </p>
+            </div>
+          </div>
+          <button type="button" (click)="closeMachineModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold transition-colors">
+            ✕
+          </button>
+        </div>
+
+        <!-- Form Body -->
+        <div class="space-y-4 font-sans text-xs">
+          
+          <!-- Mã buồng chụp -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Mã Buồng Chụp (Machine ID) *</label>
+            <input type="text" [(ngModel)]="editForm().id" [disabled]="!isCreateMode()"
+                   placeholder="vd: BOOTH_GP_01"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] disabled:opacity-60" />
+            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+              Mã này được cài đặt trên phần mềm kiosk máy tính để gửi heartbeat.
+            </span>
+          </div>
+
+          <!-- Tên phòng hiển thị -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Tên Phòng Hiển Thị (Studio Room Name) *</label>
+            <input type="text" [(ngModel)]="editForm().name"
+                   placeholder="vd: Phòng Kem Vintage 01, Phòng Xám Seoul 02, Phòng Hồng Pastel"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+          </div>
+
+          <!-- Chi nhánh / Quán -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Chi Nhánh / Cơ Sở (Store ID)</label>
+            <select [(ngModel)]="editForm().store_id"
+                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
+              <option value="store_gp_01">Tách Tách Studio — Giải Phóng (Hà Nội)</option>
+              <option value="store_hcm_01">Tách Tách Studio — Quận 1 (TP. HCM)</option>
+              <option value="store_cg_01">Tách Tách Studio — Cầu Giấy (Hà Nội)</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Dung lượng cuộn giấy tối đa -->
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Sức Chứa Cuộn Giấy (Tờ)</label>
+              <input type="number" [(ngModel)]="editForm().paper_total_capacity" min="100" max="1000"
+                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">DNP RX1HS: 700 tờ</span>
+            </div>
+
+            <!-- Số lượng giấy hiện tại -->
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Số Ảnh Còn Lại Hiện Tại</label>
+              <input type="number" [(ngModel)]="editForm().paper_remaining" min="0" max="1000"
+                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">Cập nhật số đếm thực tế</span>
+            </div>
+          </div>
+
+          <!-- Dòng máy ảnh DSLR -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Model Máy Ảnh (Camera Model)</label>
+            <input type="text" [(ngModel)]="editForm().camera_model"
+                   placeholder="Canon EOS 200D II, Canon EOS R50, Sony Alpha A6400"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+          </div>
+
+          <!-- Trạng thái máy in -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">Trạng Thái Máy In (Printer Status)</label>
+            <select [(ngModel)]="editForm().printer_status"
+                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
+              <option value="READY">READY — Sẵn sàng in</option>
+              <option value="PRINTING">PRINTING — Đang in ảnh</option>
+              <option value="OUT_OF_PAPER">OUT_OF_PAPER — Hết giấy in</option>
+              <option value="PAPER_JAM">PAPER_JAM — Kẹt giấy / lỗi cơ khí</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Modal Footer Actions -->
+        <div class="mt-8 pt-4 border-t border-[#E8DDD2] flex items-center justify-end gap-3">
+          <button type="button" (click)="closeMachineModal()"
+                  class="px-5 py-2.5 rounded-full border border-gray-300 hover:bg-gray-100 text-xs font-semibold text-[#2C1A1D] transition-colors">
+            Hủy Bỏ
+          </button>
+          <button type="button" (click)="saveMachineModal()" [disabled]="isSavingMachine()"
+                  class="px-6 py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-semibold shadow flex items-center gap-2 transition-all disabled:opacity-50">
+            <span>💾</span>
+            <span>{{ isSavingMachine() ? 'Đang Lưu...' : (isCreateMode() ? 'Tạo Buồng Chụp' : 'Lưu Thay Đổi') }}</span>
+          </button>
+        </div>
+
       </div>
     </div>
 

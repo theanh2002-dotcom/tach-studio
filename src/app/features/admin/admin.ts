@@ -67,6 +67,28 @@ export class Admin implements OnInit, OnDestroy {
     cash_revenue: 1070000
   });
 
+  // Modal State for Editing / Creating Machine
+  isMachineModalOpen = signal<boolean>(false);
+  isCreateMode = signal<boolean>(false);
+  isSavingMachine = signal<boolean>(false);
+  editForm = signal<{
+    id: string;
+    store_id: string;
+    name: string;
+    paper_remaining: number;
+    paper_total_capacity: number;
+    camera_model: string;
+    printer_status: string;
+  }>({
+    id: '',
+    store_id: 'store_gp_01',
+    name: '',
+    paper_remaining: 700,
+    paper_total_capacity: 700,
+    camera_model: 'Canon EOS 200D II',
+    printer_status: 'READY'
+  });
+
   machines = signal<BoothMachine[]>([
     {
       id: 'BOOTH_GP_01',
@@ -215,6 +237,142 @@ export class Admin implements OnInit, OnDestroy {
       }
     } finally {
       if (!silent) this.isLoading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  // Machine CRUD Modal Management
+  openCreateMachineModal() {
+    this.isCreateMode.set(true);
+    const nextIndex = this.machines().length + 1;
+    this.editForm.set({
+      id: `BOOTH_GP_0${nextIndex}`,
+      store_id: 'store_gp_01',
+      name: `Phòng Chụp 0${nextIndex}`,
+      paper_remaining: 700,
+      paper_total_capacity: 700,
+      camera_model: 'Canon EOS 200D II',
+      printer_status: 'READY'
+    });
+    this.isMachineModalOpen.set(true);
+  }
+
+  openEditMachineModal(m: BoothMachine) {
+    this.isCreateMode.set(false);
+    this.editForm.set({
+      id: m.id,
+      store_id: m.store_id || 'store_gp_01',
+      name: m.name,
+      paper_remaining: m.paper_remaining,
+      paper_total_capacity: m.paper_total_capacity || 700,
+      camera_model: m.camera_model || 'Canon EOS 200D II',
+      printer_status: m.printer_status || 'READY'
+    });
+    this.isMachineModalOpen.set(true);
+  }
+
+  closeMachineModal() {
+    this.isMachineModalOpen.set(false);
+  }
+
+  async saveMachineModal() {
+    const form = this.editForm();
+    if (!form.id.trim() || !form.name.trim()) {
+      alert('Vui lòng nhập đầy đủ Mã phòng và Tên phòng chụp!');
+      return;
+    }
+
+    this.isSavingMachine.set(true);
+    const isCreate = this.isCreateMode();
+    const endpoint = isCreate
+      ? `${this.defaultWorkerUrl}/v1/admin/machines`
+      : `${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(form.id)}`;
+    const method = isCreate ? 'POST' : 'PUT';
+
+    try {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: form.id.trim(),
+          name: form.name.trim(),
+          storeId: form.store_id.trim(),
+          paperRemaining: Number(form.paper_remaining),
+          paperTotalCapacity: Number(form.paper_total_capacity),
+          cameraModel: form.camera_model.trim(),
+          printerStatus: form.printer_status
+        })
+      });
+
+      if (response.ok) {
+        this.successMessage.set(isCreate ? 'Đã thêm phòng chụp mới thành công!' : 'Đã cập nhật thông tin phòng chụp thành công!');
+        setTimeout(() => this.successMessage.set(''), 4000);
+      }
+    } catch (e) {
+      console.warn('Backend sync failed, updated locally', e);
+    } finally {
+      // Local reactive update
+      if (isCreate) {
+        const newMachine: BoothMachine = {
+          id: form.id.trim(),
+          store_id: form.store_id.trim(),
+          store_name: 'Tách Tách Studio',
+          name: form.name.trim(),
+          status: 'IDLE',
+          paper_remaining: Number(form.paper_remaining),
+          paper_total_capacity: Number(form.paper_total_capacity),
+          printer_status: form.printer_status,
+          camera_status: 'CONNECTED',
+          camera_model: form.camera_model.trim(),
+          disk_free_gb: 120,
+          app_version: '1.0.4',
+          last_heartbeat_at: new Date().toISOString()
+        };
+        this.machines.update(list => [...list, newMachine]);
+      } else {
+        this.machines.update(list => list.map(m => {
+          if (m.id === form.id) {
+            return {
+              ...m,
+              name: form.name.trim(),
+              store_id: form.store_id.trim(),
+              paper_remaining: Number(form.paper_remaining),
+              paper_total_capacity: Number(form.paper_total_capacity),
+              camera_model: form.camera_model.trim(),
+              printer_status: form.printer_status
+            };
+          }
+          return m;
+        }));
+      }
+
+      this.isSavingMachine.set(false);
+      this.isMachineModalOpen.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async deleteMachine(machineId: string) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa buồng chụp ${machineId} khỏi hệ thống giám sát?`)) {
+      return;
+    }
+
+    try {
+      await fetch(`${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(machineId)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`
+        }
+      });
+      this.successMessage.set(`Đã xóa buồng chụp ${machineId}!`);
+      setTimeout(() => this.successMessage.set(''), 3000);
+    } catch {
+      // Fallback
+    } finally {
+      this.machines.update(list => list.filter(m => m.id !== machineId));
       this.cdr.markForCheck();
     }
   }
