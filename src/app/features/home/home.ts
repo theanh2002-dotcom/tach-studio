@@ -11,51 +11,37 @@ import { RouterModule } from '@angular/router';
 export class Home {
   packages = [
     {
-      name: 'Gói Basic — Solo & Couple',
+      name: 'Gói Solo & Couple',
       subtitle: 'Dành cho 1 - 2 người',
-      price: '99.000đ',
-      duration: '15 phút',
-      prints: '2 dải ảnh Photostrip (1x4) hoặc 2 ảnh vuông (2x2)',
+      price: '80.000đ',
+      duration: 'phiên chụp',
+      prints: '2 dải ảnh Photostrip (1x4)',
       popular: false,
       features: [
         '100% không gian phòng chụp riêng tư',
-        'Tự do tạo dáng, remote bấm chụp không giới hạn',
+        'Tự do tạo dáng, remote bấm chụp thoải mái',
         'Dàn đèn flash studio Softbox da trắng hồng',
         'Sử dụng toàn bộ kho phụ kiện props hơn 200+ món',
-        'In ảnh sắc nét lấy ngay sau 30 giây',
-        'Quét QR nhận toàn bộ ảnh gốc Full HD + video BTS hậu trường'
+        'In 2 dải ảnh Photostrip (1x4) sắc nét lấy ngay sau 30 giây',
+        'Tải toàn bộ file gốc + video BTS qua QR',
+        'In thêm: 15.000đ / dải ảnh'
       ]
     },
     {
       name: 'Gói Nhóm Bạn Thân',
       subtitle: 'Dành cho 3 - 4 người',
-      price: '149.000đ',
-      duration: '25 phút',
+      price: '100.000đ',
+      duration: 'phiên chụp',
       prints: '4 dải ảnh Photostrip cao cấp',
       popular: true,
       features: [
         'Phòng chụp rộng rãi, điều hoà mát lạnh',
-        'Bấm remote không giới hạn số lượng shoot chụp',
-        'Được đổi 2 màu phông nền tùy thích trong buổi',
+        'Bấm remote tự do, tha hồ tạo dáng kỷ niệm',
+        'Được đổi 2 màu phông nền tùy thích',
         'Kho phụ kiện kính, mũ, bờm thú Y2K hot trend',
-        'In mỗi bạn 1 dải ảnh kỷ niệm mang về',
-        'Tải trọn bộ ảnh gốc Full HD + video BTS chuyển động'
-      ]
-    },
-    {
-      name: 'Gói Big Group & Sinh Nhật',
-      subtitle: 'Dành cho 5 - 8 người',
-      price: '199.000đ',
-      duration: '35 phút',
-      prints: '6 - 8 dải ảnh + 1 ảnh Polaroid phóng lớn',
-      popular: false,
-      features: [
-        'Không gian thoải mái cho cả hội bạn hoặc gia đình',
-        'Góc máy ống kính góc rộng chụp đủ mọi thành viên',
-        'Hỗ trợ setup khung frame thiết kế riêng theo tên sự kiện',
-        'Tất cả thành viên đều có ảnh in chất lượng cao mang về',
-        'Miễn phí file gốc toàn bộ phiên chụp không nén',
-        'Hỗ trợ xuất video BTS ghép nhạc xịn xò'
+        'In 4 dải ảnh Photostrip cao cấp mang về',
+        'Tải toàn bộ file gốc + video BTS qua QR',
+        'In thêm: 15.000đ / dải ảnh'
       ]
     }
   ];

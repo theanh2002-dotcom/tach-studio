@@ -12,7 +12,7 @@ import { filter } from 'rxjs';
   styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('Tách Tách Photobooth Studio');
+  protected readonly title = signal('Tách Tách Photobooth');
   protected showHeader = signal(true);
   protected showFooter = signal(true);
 

@@ -16,7 +16,7 @@ export class Booking implements OnInit {
   phone = '';
   bookingDate = '';
   timeSlot = '14:30 - 15:00';
-  selectedPackage = 'Gói Basic — Solo & Couple (99.000đ)';
+  selectedPackage = 'Gói Solo & Couple (80.000đ)';
   selectedBackdrop = 'Kem Ấm Vintage (Signature Tách Tách)';
   peopleCount = '2 người';
   note = '';
@@ -26,9 +26,8 @@ export class Booking implements OnInit {
   errorMessage = '';
 
   packages = [
-    { name: 'Gói Basic — Solo & Couple (99.000đ)', desc: '1-2 người, 15 phút chụp, in 2 dải ảnh' },
-    { name: 'Gói Nhóm Bạn Thân (149.000đ)', desc: '3-4 người, 25 phút chụp, in 4 dải ảnh' },
-    { name: 'Gói Big Group & Sinh Nhật (199.000đ)', desc: '5-8 người, 35 phút chụp, in 6-8 dải ảnh' }
+    { name: 'Gói Solo & Couple (80.000đ)', desc: '1-2 người, phiên chụp, in 2 dải ảnh Photostrip 1x4' },
+    { name: 'Gói Nhóm Bạn Thân (100.000đ)', desc: '3-4 người, phiên chụp, in 4 dải ảnh Photostrip cao cấp' }
   ];
 
   backdrops = [
@@ -40,11 +39,12 @@ export class Booking implements OnInit {
   ];
 
   timeSlots = [
-    '09:30 - 10:00', '10:00 - 10:30', '10:30 - 11:00', '11:00 - 11:30',
+    '08:00 - 08:30', '08:30 - 09:00', '09:00 - 09:30', '09:30 - 10:00',
+    '10:00 - 10:30', '10:30 - 11:00', '11:00 - 11:30',
     '13:30 - 14:00', '14:00 - 14:30', '14:30 - 15:00', '15:00 - 15:30',
     '15:30 - 16:00', '16:00 - 16:30', '16:30 - 17:00', '17:00 - 17:30',
     '18:00 - 18:30', '18:30 - 19:00', '19:00 - 19:30', '19:30 - 20:00',
-    '20:00 - 20:30', '20:30 - 21:00'
+    '20:00 - 20:30', '20:30 - 21:00', '21:00 - 21:30'
   ];
 
   ngOnInit() {
@@ -105,7 +105,7 @@ export class Booking implements OnInit {
 
       this.isSuccess = true;
     } catch (err: any) {
-      this.errorMessage = err.message || 'Đã có lỗi xảy ra. Vui lòng liên hệ hotline 0779.359.756.';
+      this.errorMessage = err.message || 'Đã có lỗi xảy ra. Vui lòng liên hệ hotline 0812955909.';
     } finally {
       this.isSubmitting = false;
     }

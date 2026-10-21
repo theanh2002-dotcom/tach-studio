@@ -87,7 +87,7 @@ export class Admin implements OnInit, OnDestroy {
   }>({
     id: '',
     license_id: '',
-    store_id: 'store_gp_01',
+    store_id: 'store_hp_01',
     name: '',
     paper_remaining: 700,
     paper_total_capacity: 700,
@@ -97,13 +97,13 @@ export class Admin implements OnInit, OnDestroy {
 
   machines = signal<BoothMachine[]>([
     {
-      id: 'BOOTH_GP_01',
+      id: 'BOOTH_HP_01',
       license_id: 'lic_tach_01',
       license_key_prefix: 'LUMI-89AB',
       license_plan: 'standard',
       license_expires_at: '2027-10-20',
-      store_id: 'store_gp_01',
-      store_name: 'Tách Tách Giải Phóng',
+      store_id: 'store_hp_01',
+      store_name: 'Tách Tách Hải Phòng',
       name: 'Phòng Kem Vintage 01',
       status: 'IDLE',
       paper_remaining: 520,
@@ -116,13 +116,13 @@ export class Admin implements OnInit, OnDestroy {
       last_heartbeat_at: new Date(Date.now() - 60000).toISOString()
     },
     {
-      id: 'BOOTH_GP_02',
+      id: 'BOOTH_HP_02',
       license_id: 'lic_tach_02',
       license_key_prefix: 'LUMI-CD45',
       license_plan: 'standard',
       license_expires_at: '2027-12-31',
-      store_id: 'store_gp_01',
-      store_name: 'Tách Tách Giải Phóng',
+      store_id: 'store_hp_01',
+      store_name: 'Tách Tách Hải Phòng',
       name: 'Phòng Xám Seoul 02',
       status: 'IN_SESSION',
       paper_remaining: 18,
@@ -139,12 +139,12 @@ export class Admin implements OnInit, OnDestroy {
   transactions = signal<BoothTransaction[]>([
     {
       id: 'tx_01',
-      machine_id: 'BOOTH_GP_02',
+      machine_id: 'BOOTH_HP_02',
       machine_name: 'Phòng Xám Seoul 02',
-      store_name: 'Tách Tách Giải Phóng',
+      store_name: 'Tách Tách Hải Phòng',
       session_code: '#ses_89ab12',
-      package_name: 'Gói Nhóm Bạn Thân (149k)',
-      total_amount: 149000,
+      package_name: 'Gói Nhóm Bạn Thân (100k)',
+      total_amount: 100000,
       print_copies: 4,
       payment_method: 'VIETQR_SEPAY',
       payment_status: 'PAID',
@@ -152,11 +152,11 @@ export class Admin implements OnInit, OnDestroy {
     },
     {
       id: 'tx_02',
-      machine_id: 'BOOTH_GP_01',
+      machine_id: 'BOOTH_HP_01',
       machine_name: 'Phòng Kem Vintage 01',
       session_code: '#ses_77cd34',
-      package_name: 'Gói Basic — Solo & Couple (99k)',
-      total_amount: 99000,
+      package_name: 'Gói Solo & Couple (80k)',
+      total_amount: 80000,
       print_copies: 2,
       payment_method: 'CASH',
       payment_status: 'PAID',
@@ -166,7 +166,7 @@ export class Admin implements OnInit, OnDestroy {
       id: 'tx_03',
       machine_id: 'ONLINE_ORDER',
       machine_name: 'Web In Ảnh Online',
-      store_name: 'Tách Tách Studio',
+      store_name: 'Tách Tách Photobooth',
       session_code: '#order_55ef12',
       package_name: 'Đẩy Ảnh In Theo Yêu Cầu (6 ảnh)',
       total_amount: 90000,
@@ -260,9 +260,9 @@ export class Admin implements OnInit, OnDestroy {
     this.isCreateMode.set(true);
     const nextIndex = this.machines().length + 1;
     this.editForm.set({
-      id: `BOOTH_GP_0${nextIndex}`,
+      id: `BOOTH_HP_0${nextIndex}`,
       license_id: '',
-      store_id: 'store_gp_01',
+      store_id: 'store_hp_01',
       name: `Phòng Chụp 0${nextIndex}`,
       paper_remaining: 700,
       paper_total_capacity: 700,
@@ -277,7 +277,7 @@ export class Admin implements OnInit, OnDestroy {
     this.editForm.set({
       id: m.id,
       license_id: m.license_id || '',
-      store_id: m.store_id || 'store_gp_01',
+      store_id: m.store_id || 'store_hp_01',
       name: m.name,
       paper_remaining: m.paper_remaining,
       paper_total_capacity: m.paper_total_capacity || 700,

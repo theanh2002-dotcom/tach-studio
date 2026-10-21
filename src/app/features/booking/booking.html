@@ -21,7 +21,7 @@
       </div>
       <h3 class="text-2xl font-serif font-bold text-[#681423] mb-3">Nhận Lịch Đặt Thành Công!</h3>
       <p class="text-xs sm:text-sm text-[#2C1A1D]/80 font-sans leading-relaxed mb-6">
-        Cảm ơn bạn đã lựa chọn <b>Tách Tách Photobooth Studio</b>. Thông tin đặt phòng của bạn đã được chuyển tới quản lý. Chúng mình sẽ gọi điện hoặc nhắn tin Zalo xác nhận trong vòng 10-15 phút nhé!
+        Cảm ơn bạn đã lựa chọn <b>Tách Tách Photobooth</b>. Thông tin đặt phòng của bạn đã được chuyển tới quản lý. Chúng mình sẽ gọi điện hoặc nhắn tin Zalo xác nhận trong vòng 10-15 phút nhé!
       </p>
       <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] text-xs text-left mb-6 space-y-1.5 font-sans">
         <div><b>Khách hàng:</b> {{ name }} - {{ phone }}</div>
@@ -53,7 +53,7 @@
           <label class="block text-xs font-bold text-[#681423] uppercase tracking-wider mb-3">
             1. Chọn Gói Chụp Phù Hợp *
           </label>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label *ngFor="let pkg of packages" 
                    class="p-4 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between"
                    [ngClass]="selectedPackage === pkg.name 
