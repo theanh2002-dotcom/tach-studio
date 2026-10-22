@@ -1,5 +1,6 @@
 import { fetchWithTimeout, getGoogleAccessToken } from './_google-oauth.js';
 import { createResumableUploadToken, decryptUploadToken } from './_upload-token.js';
+import { getSystemConfig } from './_config.js';
 
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set([
@@ -41,7 +42,8 @@ export default async function handler(req, res) {
     }
 
     const accessToken = await getGoogleAccessToken();
-    const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+    const config = await getSystemConfig();
+    const rootFolderId = config.GOOGLE_DRIVE_ROOT_FOLDER_ID || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
     if (!rootFolderId || !await isAllowedUploadFolder(folderId, rootFolderId, accessToken)) {
       return res.status(403).json({ error: 'Upload folder is not allowed' });
     }

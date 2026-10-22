@@ -1,3 +1,5 @@
+import { getSystemConfig } from './_config.js';
+
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const REQUEST_TIMEOUT_MS = 20_000;
 
@@ -21,9 +23,10 @@ export async function getGoogleAccessToken() {
     return cachedToken;
   }
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  const config = await getSystemConfig();
+  const clientId = config.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = config.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = config.GOOGLE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
 
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error('Missing Google OAuth configuration');

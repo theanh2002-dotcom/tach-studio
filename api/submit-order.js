@@ -1,4 +1,5 @@
 import { decryptUploadToken } from './_upload-token.js';
+import { getSystemConfig } from './_config.js';
 
 export default async function handler(req, res) {
   // CORS Headers
@@ -42,8 +43,9 @@ export default async function handler(req, res) {
   }
   const folderLink = `https://drive.google.com/drive/folders/${encodeURIComponent(folderId)}`;
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const config = await getSystemConfig();
+  const botToken = config.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = config.TELEGRAM_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
 
   if (!botToken || !chatId) {
     return res.status(500).json({ error: 'Missing Telegram configuration' });

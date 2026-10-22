@@ -75,6 +75,29 @@ export class Admin implements OnInit, OnDestroy {
   isMachineModalOpen = signal<boolean>(false);
   isCreateMode = signal<boolean>(false);
   isSavingMachine = signal<boolean>(false);
+
+  // System Settings State (Cloudflare D1 Dynamic Config)
+  settingsForm = signal<{
+    telegram_bot_token: string;
+    telegram_chat_id: string;
+    google_drive_root_folder_id: string;
+    google_client_id: string;
+    google_client_secret: string;
+    google_refresh_token: string;
+  }>({
+    telegram_bot_token: '',
+    telegram_chat_id: '',
+    google_drive_root_folder_id: '',
+    google_client_id: '',
+    google_client_secret: '',
+    google_refresh_token: ''
+  });
+  isLoadingSettings = signal<boolean>(false);
+  isSavingSettings = signal<boolean>(false);
+  isTestingTelegram = signal<boolean>(false);
+  telegramTestResult = signal<{ ok: boolean; message: string } | null>(null);
+  showAdvancedGoogleOauth = signal<boolean>(false);
+  showTokens = signal<boolean>(false);
   editForm = signal<{
     id: string;
     license_id: string;
@@ -186,6 +209,7 @@ export class Admin implements OnInit, OnDestroy {
       this.adminSecret.set(savedToken);
       this.isAuthenticated.set(true);
       this.fetchCloudflareDashboard();
+      this.loadSettings();
     }
 
     // Auto-refresh every 30s when tab is active
@@ -210,6 +234,7 @@ export class Admin implements OnInit, OnDestroy {
     this.isAuthenticated.set(true);
     this.errorMessage.set('');
     this.fetchCloudflareDashboard();
+    this.loadSettings();
   }
 
   logout() {
@@ -472,5 +497,140 @@ export class Admin implements OnInit, OnDestroy {
 
   formatVND(amount: number): string {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
+  }
+
+  // ==========================================
+  // SETTINGS & TELEGRAM / GOOGLE DRIVE ACTIONS
+  // ==========================================
+  switchTab(tab: 'monitoring' | 'revenue' | 'settings') {
+    this.activeTab.set(tab);
+    if (tab === 'settings') {
+      this.loadSettings();
+    }
+  }
+
+  toggleShowTokens() {
+    this.showTokens.update(v => !v);
+  }
+
+  toggleAdvancedGoogleOauth() {
+    this.showAdvancedGoogleOauth.update(v => !v);
+  }
+
+  async loadSettings() {
+    this.isLoadingSettings.set(true);
+    this.errorMessage.set('');
+    try {
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/settings`, {
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && data.settings) {
+          this.settingsForm.set({
+            telegram_bot_token: data.settings.TELEGRAM_BOT_TOKEN || '',
+            telegram_chat_id: data.settings.TELEGRAM_CHAT_ID || '',
+            google_drive_root_folder_id: data.settings.GOOGLE_DRIVE_ROOT_FOLDER_ID || '',
+            google_client_id: data.settings.GOOGLE_CLIENT_ID || '',
+            google_client_secret: data.settings.GOOGLE_CLIENT_SECRET || '',
+            google_refresh_token: data.settings.GOOGLE_REFRESH_TOKEN || ''
+          });
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to load settings from Cloudflare Worker:', err?.message || err);
+    } finally {
+      this.isLoadingSettings.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async saveSettings() {
+    this.isSavingSettings.set(true);
+    this.errorMessage.set('');
+    this.successMessage.set('');
+    try {
+      const form = this.settingsForm();
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/settings`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          settings: {
+            TELEGRAM_BOT_TOKEN: form.telegram_bot_token.trim(),
+            TELEGRAM_CHAT_ID: form.telegram_chat_id.trim(),
+            GOOGLE_DRIVE_ROOT_FOLDER_ID: form.google_drive_root_folder_id.trim(),
+            GOOGLE_CLIENT_ID: form.google_client_id.trim(),
+            GOOGLE_CLIENT_SECRET: form.google_client_secret.trim(),
+            GOOGLE_REFRESH_TOKEN: form.google_refresh_token.trim(),
+          }
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.ok) {
+        this.successMessage.set('Đã lưu thành công cấu hình vào Cloudflare D1!');
+        setTimeout(() => this.successMessage.set(''), 4000);
+      } else {
+        this.errorMessage.set(data.message || 'Không thể lưu cấu hình.');
+      }
+    } catch (err: any) {
+      this.errorMessage.set('Lỗi kết nối khi lưu cấu hình: ' + (err?.message || err));
+    } finally {
+      this.isSavingSettings.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async testTelegram() {
+    this.isTestingTelegram.set(true);
+    this.telegramTestResult.set(null);
+    try {
+      const form = this.settingsForm();
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/test-telegram`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          botToken: form.telegram_bot_token.trim(),
+          chatId: form.telegram_chat_id.trim()
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.ok) {
+        this.telegramTestResult.set({
+          ok: true,
+          message: `✓ Gửi tin nhắn test thành công tới Chat ID: ${data.chatId || form.telegram_chat_id}!`
+        });
+      } else {
+        this.telegramTestResult.set({
+          ok: false,
+          message: data.message || 'Telegram từ chối gửi tin nhắn. Hãy kiểm tra lại Bot Token hoặc Chat ID!'
+        });
+      }
+    } catch (err: any) {
+      this.telegramTestResult.set({
+        ok: false,
+        message: 'Lỗi mạng khi kiểm tra Telegram: ' + (err?.message || err)
+      });
+    } finally {
+      this.isTestingTelegram.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  openGoogleDriveFolder() {
+    const folderId = this.settingsForm().google_drive_root_folder_id.trim();
+    if (!folderId) {
+      alert('Chưa có Google Drive Folder ID! Vui lòng nhập Folder ID trước.');
+      return;
+    }
+    window.open(`https://drive.google.com/drive/folders/${encodeURIComponent(folderId)}`, '_blank');
   }
 }

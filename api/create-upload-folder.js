@@ -1,5 +1,6 @@
 import { fetchWithTimeout, getGoogleAccessToken } from './_google-oauth.js';
 import { createUploadToken } from './_upload-token.js';
+import { getSystemConfig } from './_config.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -29,7 +30,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Số điện thoại không hợp lệ (phải bắt đầu bằng số 0 và có đúng 10 chữ số).' });
   }
 
-  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  const config = await getSystemConfig();
+  const rootFolderId = config.GOOGLE_DRIVE_ROOT_FOLDER_ID || process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
   if (!rootFolderId) {
     return res.status(500).json({ error: 'Storage configuration is missing' });
   }

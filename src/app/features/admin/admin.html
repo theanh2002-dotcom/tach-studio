@@ -88,11 +88,11 @@
         <span>Doanh Thu & Giao Dịch</span>
       </button>
 
-      <button (click)="activeTab.set('settings')" 
+      <button (click)="switchTab('settings')" 
               class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
               [ngClass]="activeTab() === 'settings' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
         <span>⚙️</span>
-        <span>Cấu Hình Bốt</span>
+        <span>Cấu Hình (Telegram & Drive)</span>
       </button>
     </div>
 
@@ -346,20 +346,205 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- TAB 3: CẤU HÌNH & HƯỚNG DẪN KẾT NỐI          -->
+    <!-- TAB 3: CẤU HÌNH & TÍCH HỢP HỆ THỐNG        -->
     <!-- ========================================== -->
-    <div *ngIf="activeTab() === 'settings'" class="bg-white rounded-3xl p-8 border border-[#E8DDD2] shadow-sm space-y-6">
-      <h3 class="font-serif font-bold text-xl text-[#681423]">Cấu Hình Kết Nối Máy Bốt (Cloudflare Native)</h3>
-      <p class="text-xs text-[#2C1A1D]/70 leading-relaxed max-w-2xl">
-        Để một máy bốt mới tại quán tự động báo cáo tình trạng giấy in và doanh thu lên trang Admin này, bạn chỉ cần nhập địa chỉ Cloudflare Worker vào file cài đặt của bốt:
-      </p>
+    <div *ngIf="activeTab() === 'settings'" class="space-y-6">
 
-      <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/40 font-mono text-xs space-y-2">
-        <div><b>Worker URL:</b> https://tanhbooth-api.laihoanganh456.workers.dev</div>
-        <div><b>Heartbeat API:</b> POST /v1/telemetry/heartbeat (chu kỳ 3 phút)</div>
-        <div><b>Transaction API:</b> POST /v1/telemetry/transactions (bắn ngay khi thanh toán)</div>
-        <div><b>Database:</b> Cloudflare D1 (tanhbooth-license-prod)</div>
+      <!-- Action Bar Header -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8DDD2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚙️</span>
+            <h3 class="font-serif font-bold text-xl text-[#681423]">Cấu Hình Động Hệ Thống (Cloudflare D1)</h3>
+          </div>
+          <p class="text-xs text-[#2C1A1D]/70 mt-1 max-w-2xl leading-relaxed">
+            Thay đổi Token Telegram nhận thông báo và Folder Google Drive nhận ảnh trực tiếp tại đây. Dữ liệu lưu trên Database Cloudflare D1 và áp dụng <b>ngay lập tức</b> cho toàn bộ website mà không cần sửa code.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 self-end md:self-auto">
+          <button type="button" (click)="loadSettings()" [disabled]="isLoadingSettings()"
+                  class="px-4 py-2.5 rounded-xl border border-[#C89965]/40 bg-[#FAF6F0] hover:bg-[#E8DDD2] text-xs font-semibold text-[#681423] transition-all flex items-center gap-2">
+            <span [class.animate-spin]="isLoadingSettings()">🔄</span>
+            <span>Tải Lại</span>
+          </button>
+          <button type="button" (click)="saveSettings()" [disabled]="isSavingSettings()"
+                  class="px-6 py-2.5 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-semibold shadow-md flex items-center gap-2 transition-all disabled:opacity-50">
+            <span>💾</span>
+            <span>{{ isSavingSettings() ? 'Đang Lưu...' : 'Lưu Cấu Hình Vào D1' }}</span>
+          </button>
+        </div>
       </div>
+
+      <!-- CARD 1: CẤU HÌNH TELEGRAM BOT -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8DDD2] shadow-sm space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E8DDD2] pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl font-bold border border-sky-100">
+              ✈️
+            </div>
+            <div>
+              <h4 class="font-serif font-bold text-base text-[#681423]">Thông Báo Telegram (Đặt Lịch & Đơn In Ảnh)</h4>
+              <p class="text-xs text-[#2C1A1D]/60">Gửi thông báo tức thì khi có khách đặt lịch phòng hoặc gửi file ảnh in</p>
+            </div>
+          </div>
+
+          <button type="button" (click)="toggleShowTokens()"
+                  class="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-[11px] font-semibold text-[#2C1A1D]/70 transition-colors">
+            {{ showTokens() ? '🔒 Ẩn Token' : '👁️ Hiện Token' }}
+          </button>
+        </div>
+
+        <!-- Input Fields Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans">
+          
+          <!-- Telegram Bot Token -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">
+              Telegram Bot Token *
+            </label>
+            <input [type]="showTokens() ? 'text' : 'password'"
+                   [(ngModel)]="settingsForm().telegram_bot_token"
+                   placeholder="vd: 8318462404:AAGQJuuemFzWtKM7SRuXegYt99fhUb0wT4Y"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-[#FAF6F0]" />
+            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+              Lấy bằng cách chat <code>/newbot</code> với <a href="https://t.me/BotFather" target="_blank" class="text-sky-600 underline font-semibold">@BotFather</a> trên Telegram.
+            </span>
+          </div>
+
+          <!-- Telegram Chat ID -->
+          <div>
+            <label class="block font-bold text-[#2C1A1D] mb-1">
+              Telegram Chat ID (Cá nhân hoặc Group) *
+            </label>
+            <input type="text"
+                   [(ngModel)]="settingsForm().telegram_chat_id"
+                   placeholder="vd: 5673994427 hoặc -1001234567890 (nhóm)"
+                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-[#FAF6F0]" />
+            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+              Thêm bot vào nhóm và gửi tin nhắn để lấy ID (dùng <a href="https://t.me/userinfobot" target="_blank" class="text-sky-600 underline font-semibold">@userinfobot</a> hoặc <a href="https://t.me/getmyid_bot" target="_blank" class="text-sky-600 underline font-semibold">@getmyid_bot</a>).
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Telegram Action & Status Test -->
+        <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <button type="button" (click)="testTelegram()" [disabled]="isTestingTelegram()"
+                  class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+            <span [class.animate-spin]="isTestingTelegram()">📨</span>
+            <span>{{ isTestingTelegram() ? 'Đang gửi tin nhắn test...' : 'Gửi Tin Nhắn Test Thử Telegram' }}</span>
+          </button>
+
+          <span class="text-[11px] text-[#2C1A1D]/60 italic">
+            * Bấm nút để kiểm tra bot có nhắn tin được vào nhóm không trước khi lưu.
+          </span>
+        </div>
+
+        <!-- Test Telegram Feedback Alert -->
+        <div *ngIf="telegramTestResult()"
+             class="p-4 rounded-2xl text-xs font-medium border transition-all"
+             [ngClass]="telegramTestResult()?.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-800'">
+          <div class="flex items-center gap-2 font-bold mb-0.5">
+            <span>{{ telegramTestResult()?.ok ? '✓ Thành công!' : '✕ Thất bại!' }}</span>
+          </div>
+          <div>{{ telegramTestResult()?.message }}</div>
+        </div>
+
+      </div>
+
+      <!-- CARD 2: CẤU HÌNH GOOGLE DRIVE FOLDER -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8DDD2] shadow-sm space-y-5">
+        <div class="flex items-center justify-between border-b border-[#E8DDD2] pb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-bold border border-amber-100">
+              📁
+            </div>
+            <div>
+              <h4 class="font-serif font-bold text-base text-[#681423]">Thư Mục Google Drive (Nhận File Ảnh In Của Khách)</h4>
+              <p class="text-xs text-[#2C1A1D]/60">Mỗi đơn gửi in sẽ tự động tạo một thư mục con theo tên và số điện thoại khách hàng</p>
+            </div>
+          </div>
+
+          <button type="button" (click)="openGoogleDriveFolder()"
+                  class="px-4 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs font-semibold text-[#681423] transition-colors flex items-center gap-2">
+            <span>📂</span>
+            <span>Mở Thư Mục Trên Drive</span>
+          </button>
+        </div>
+
+        <!-- Google Drive Folder ID Input -->
+        <div class="text-xs font-sans">
+          <label class="block font-bold text-[#2C1A1D] mb-1">
+            Google Drive Root Folder ID *
+          </label>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text"
+                   [(ngModel)]="settingsForm().google_drive_root_folder_id"
+                   placeholder="vd: 1uXYZabc123-Def456_UVW789..."
+                   class="flex-1 px-4 py-2.5 rounded-xl border border-[#E8DDD2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-[#FAF6F0]" />
+          </div>
+          <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+            Mở thư mục trên trình duyệt, copy toàn bộ chuỗi ký tự phía sau <code>https://drive.google.com/drive/folders/<b>[CHUỖI_ID]</b></code>
+          </span>
+        </div>
+
+        <!-- Advanced Google OAuth Credentials (Collapsible) -->
+        <div class="pt-2 border-t border-[#E8DDD2]">
+          <button type="button" (click)="toggleAdvancedGoogleOauth()"
+                  class="text-xs font-semibold text-[#681423] hover:underline flex items-center gap-1.5">
+            <span>{{ showAdvancedGoogleOauth() ? '▼' : '▶' }}</span>
+            <span>Cấu Hình Nâng Cao: Google Cloud OAuth 2.0 (Client ID, Secret, Refresh Token)</span>
+          </button>
+
+          <div *ngIf="showAdvancedGoogleOauth()" class="mt-4 p-5 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/30 space-y-4 text-xs font-sans">
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Google Client ID</label>
+              <input [type]="showTokens() ? 'text' : 'password'"
+                     [(ngModel)]="settingsForm().google_client_id"
+                     placeholder="vd: 636384045280-...apps.googleusercontent.com"
+                     class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+            </div>
+
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Google Client Secret</label>
+              <input [type]="showTokens() ? 'text' : 'password'"
+                     [(ngModel)]="settingsForm().google_client_secret"
+                     placeholder="vd: GOCSPX-..."
+                     class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+            </div>
+
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Google Refresh Token</label>
+              <input [type]="showTokens() ? 'text' : 'password'"
+                     [(ngModel)]="settingsForm().google_refresh_token"
+                     placeholder="vd: 1//04OBqyrpMibxPCgYIARAAGAQ..."
+                     class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+                Token này được tạo khi liên kết tài khoản Google Drive để cấp quyền tự động tải ảnh vào thư mục studio.
+              </span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CARD 3: THÔNG TIN KẾT NỐI MÁY BỐT & SERVERLESS API -->
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-[#E8DDD2] shadow-sm space-y-4">
+        <h4 class="font-serif font-bold text-base text-[#681423]">Thông Tin Kết Nối Hạ Tầng Kỹ Thuật</h4>
+        <p class="text-xs text-[#2C1A1D]/70 leading-relaxed max-w-2xl">
+          Thông tin endpoint Cloudflare Native dành cho máy tính kiosk tại quán và các hàm Serverless:
+        </p>
+
+        <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#C89965]/40 font-mono text-xs space-y-1.5">
+          <div><b>Worker URL:</b> https://tanhbooth-api.laihoanganh456.workers.dev</div>
+          <div><b>Heartbeat API:</b> POST /v1/telemetry/heartbeat (chu kỳ 3 phút)</div>
+          <div><b>Transaction API:</b> POST /v1/telemetry/transactions (bắn ngay khi thanh toán)</div>
+          <div><b>Settings API:</b> GET/POST /v1/admin/settings (Cloudflare D1 dynamic)</div>
+          <div><b>Database:</b> Cloudflare D1 (<code>tanhbooth-license-prod</code>)</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ========================================== -->
