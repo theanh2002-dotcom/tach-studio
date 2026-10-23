@@ -405,7 +405,7 @@
             </label>
             <input [type]="showTokens() ? 'text' : 'password'"
                    [(ngModel)]="settingsForm().telegram_bot_token"
-                   placeholder="vd: 8318462404:AAGQJuuemFzWtKM7SRuXegYt99fhUb0wT4Y"
+                   placeholder="vd: 1234567890:AAH_sampleTokenSecretString123456"
                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-[#FAF6F0]" />
             <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
               Lấy bằng cách chat <code>/newbot</code> với <a href="https://t.me/BotFather" target="_blank" class="text-sky-600 underline font-semibold">@BotFather</a> trên Telegram.
@@ -419,7 +419,7 @@
             </label>
             <input type="text"
                    [(ngModel)]="settingsForm().telegram_chat_id"
-                   placeholder="vd: 5673994427 hoặc -1001234567890 (nhóm)"
+                   placeholder="vd: 123456789 (cá nhân) hoặc -1001234567890 (nhóm)"
                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-[#FAF6F0]" />
             <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
               Thêm bot vào nhóm và gửi tin nhắn để lấy ID (dùng <a href="https://t.me/userinfobot" target="_blank" class="text-sky-600 underline font-semibold">@userinfobot</a> hoặc <a href="https://t.me/getmyid_bot" target="_blank" class="text-sky-600 underline font-semibold">@getmyid_bot</a>).
@@ -502,7 +502,7 @@
               <label class="block font-bold text-[#2C1A1D] mb-1">Google Client ID</label>
               <input [type]="showTokens() ? 'text' : 'password'"
                      [(ngModel)]="settingsForm().google_client_id"
-                     placeholder="vd: 636384045280-...apps.googleusercontent.com"
+                     placeholder="vd: your-app-id.apps.googleusercontent.com"
                      class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
             </div>
 
@@ -510,7 +510,7 @@
               <label class="block font-bold text-[#2C1A1D] mb-1">Google Client Secret</label>
               <input [type]="showTokens() ? 'text' : 'password'"
                      [(ngModel)]="settingsForm().google_client_secret"
-                     placeholder="vd: GOCSPX-..."
+                     placeholder="vd: GOCSPX-yourClientSecretKeyHere"
                      class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
             </div>
 
@@ -518,7 +518,7 @@
               <label class="block font-bold text-[#2C1A1D] mb-1">Google Refresh Token</label>
               <input [type]="showTokens() ? 'text' : 'password'"
                      [(ngModel)]="settingsForm().google_refresh_token"
-                     placeholder="vd: 1//04OBqyrpMibxPCgYIARAAGAQ..."
+                     placeholder="vd: 1//04your_sample_refresh_token_string..."
                      class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] font-mono text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
               <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
                 Token này được tạo khi liên kết tài khoản Google Drive để cấp quyền tự động tải ảnh vào thư mục studio.
