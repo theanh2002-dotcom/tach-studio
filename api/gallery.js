@@ -1,5 +1,6 @@
 import { fetchWithTimeout, getGoogleAccessToken } from './_google-oauth.js';
 import { createMediaToken, createStableMediaId } from './_media-token.js';
+import { getSystemConfig } from './_config.js';
 
 const DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 const DRIVE_API_KEY = process.env.GOOGLE_DRIVE_API_KEY;
@@ -7,6 +8,7 @@ const MEDIA_PROXY_URL = process.env.PUBLIC_MEDIA_PROXY_URL || 'https://image-pho
 const GALLERY_RESOLVER_URL = process.env.GALLERY_RESOLVER_URL || 'https://tanhbooth-api.laihoanganh456.workers.dev';
 const GALLERY_RESOLVER_SECRET = process.env.GALLERY_RESOLVER_SECRET || 'theanh2002';
 const ALLOWED_ORIGINS = new Set([
+  'https://tachtach.event-vn.com',
   'https://tanh.event-vn.com',
   'https://luxe-agency-vn.vercel.app',
   'http://localhost:4200',
@@ -211,7 +213,7 @@ async function driveList(query, fields, initialCursor = null, loadAllPages = fal
 
 async function driveFetch(url, options = {}) {
   const headers = new Headers(options.headers || {});
-  if (hasOAuthConfiguration()) {
+  if (await hasOAuthConfiguration()) {
     const accessToken = await getGoogleAccessToken();
     headers.set('Authorization', `Bearer ${accessToken}`);
     return fetchWithTimeout(url, { ...options, headers });
@@ -225,11 +227,12 @@ async function driveFetch(url, options = {}) {
   });
 }
 
-function hasOAuthConfiguration() {
+async function hasOAuthConfiguration() {
+  const config = await getSystemConfig();
   return Boolean(
-    process.env.GOOGLE_CLIENT_ID &&
-    process.env.GOOGLE_CLIENT_SECRET &&
-    process.env.GOOGLE_REFRESH_TOKEN
+    (config.GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID) &&
+    (config.GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET) &&
+    (config.GOOGLE_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN)
   );
 }
 
@@ -473,9 +476,11 @@ function isCanonicalEventMedia(name) {
 
 function setCors(req, res) {
   const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && (ALLOWED_ORIGINS.has(origin) || origin.endsWith('.event-vn.com') || origin.endsWith('.vercel.app'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Accept, Content-Type');

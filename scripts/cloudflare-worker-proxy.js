@@ -14,6 +14,7 @@
 
 const ALLOWED_ORIGINS = new Set([
   'https://tanh.event-vn.com',
+  'https://tachtach.event-vn.com',
   'https://luxe-agency-vn.vercel.app',
   'http://localhost:4200',
   'http://127.0.0.1:4200'
@@ -203,9 +204,10 @@ async function decryptOpaqueToken(token, secret) {
   const ciphertext = decodeBase64Url(parts[3]);
   if (!iv || iv.length !== 12 || !tag || tag.length !== 16 || !ciphertext) return null;
 
-  const secretBytes = /^[0-9a-f]{64}$/i.test(secret)
-    ? hexToBytes(secret)
-    : new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(secret)));
+  const trimmedSecret = String(secret || '').trim().replace(/^["']|["']$/g, '');
+  const secretBytes = /^[0-9a-f]{64}$/i.test(trimmedSecret)
+    ? hexToBytes(trimmedSecret)
+    : new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(trimmedSecret)));
   if (!secretBytes || secretBytes.length !== 32) return null;
 
   const key = await crypto.subtle.importKey('raw', secretBytes, 'AES-GCM', false, ['decrypt']);
@@ -251,6 +253,8 @@ function withCors(response, request) {
   if (origin && ALLOWED_ORIGINS.has(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Vary', 'Origin');
+  } else {
+    response.headers.set('Access-Control-Allow-Origin', '*');
   }
   response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, PUT, OPTIONS');
   response.headers.set('Access-Control-Allow-Headers', 'Range, If-Range, If-None-Match, If-Modified-Since, Content-Type, Content-Range, X-Upload-Content-Type, X-Upload-Content-Length');
