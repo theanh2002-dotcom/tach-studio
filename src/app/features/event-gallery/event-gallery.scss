@@ -480,13 +480,34 @@ $radius-sm: 10px;
     font-size: 13px;
 
     &--secondary {
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      box-shadow: none;
+      background: #ffffff;
+      color: #681423;
+      border: 1.5px solid #c89965;
+      box-shadow: 0 2px 8px rgba(43, 40, 37, 0.08);
+
+      svg {
+        stroke: #681423;
+      }
+
+      .spinner-inline {
+        border-color: rgba(104, 20, 35, 0.25);
+        border-top-color: #681423;
+      }
 
       &:hover {
-        background: rgba(255, 255, 255, 0.22);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        background: #fdfaf6;
+        border-color: #b8864a;
+        color: #4a0d18;
+        box-shadow: 0 4px 14px rgba(200, 153, 101, 0.25);
+
+        svg {
+          stroke: #4a0d18;
+        }
+      }
+
+      &:active {
+        transform: scale(0.97);
+        background: #f5ebe1;
       }
     }
   }
