@@ -224,17 +224,51 @@ export class Admin implements OnInit, OnDestroy {
     if (this.refreshIntervalId) clearInterval(this.refreshIntervalId);
   }
 
-  login() {
+  async login() {
     const secret = this.adminSecret().trim();
     if (!secret) {
       this.errorMessage.set('Vui lòng nhập mã bảo mật Admin Secret.');
       return;
     }
-    localStorage.setItem('tach_admin_secret', secret);
-    this.isAuthenticated.set(true);
+
+    this.isLoading.set(true);
     this.errorMessage.set('');
-    this.fetchCloudflareDashboard();
-    this.loadSettings();
+
+    try {
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${secret}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok) {
+          localStorage.setItem('tach_admin_secret', secret);
+          this.isAuthenticated.set(true);
+          if (data.overview) this.overview.set(data.overview);
+          if (Array.isArray(data.machines) && data.machines.length > 0) {
+            this.machines.set(data.machines);
+          }
+          if (Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0) {
+            this.transactions.set(data.recentTransactions);
+          }
+          this.loadSettings();
+        } else {
+          this.errorMessage.set('Mật khẩu Admin Secret không hợp lệ.');
+        }
+      } else if (response.status === 401 || response.status === 403) {
+        this.errorMessage.set('Mật khẩu Admin Secret không chính xác. Vui lòng kiểm tra lại!');
+      } else {
+        this.errorMessage.set(`Lỗi kết nối máy chủ (${response.status}). Vui lòng thử lại sau.`);
+      }
+    } catch (e: any) {
+      this.errorMessage.set('Không thể kết nối đến máy chủ quản trị. Hãy kiểm tra kết nối mạng!');
+    } finally {
+      this.isLoading.set(false);
+      this.cdr.markForCheck();
+    }
   }
 
   logout() {
@@ -266,8 +300,11 @@ export class Admin implements OnInit, OnDestroy {
             this.transactions.set(data.recentTransactions);
           }
         }
+      } else if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('tach_admin_secret');
+        this.isAuthenticated.set(false);
+        this.errorMessage.set('Phiên đăng nhập đã hết hạn. Vui lòng nhập lại Admin Secret.');
       } else if (!silent) {
-        // If unauthorized or network error, fallback to preview demo mode
         console.warn('Could not connect to live Cloudflare Worker, showing local preview state.');
       }
     } catch (e: any) {
