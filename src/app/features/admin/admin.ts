@@ -248,32 +248,61 @@ export class Admin implements OnInit, OnDestroy {
           if (data.overview) this.overview.set(data.overview);
           
           const fetchedMachines: BoothMachine[] = Array.isArray(data.machines) ? data.machines : [];
-          const existingLocal = this.machines();
           
-          // Only show machines that are in managedIds
-          const finalMachines: BoothMachine[] = managedIds.map(id => {
-            const foundRemote = fetchedMachines.find(m => m.id === id || m.license_id === id);
-            if (foundRemote) return foundRemote;
-            const foundLocal = existingLocal.find(m => m.id === id);
-            if (foundLocal) return foundLocal;
-            return {
-              id,
-              name: `Phòng ${id}`,
-              store_id: 'store_hp_01',
-              store_name: 'Tách Tách Studio',
-              status: 'IDLE',
-              paper_remaining: 700,
-              paper_total_capacity: 700,
-              printer_status: 'READY',
-              camera_status: 'CONNECTED',
-              camera_model: 'Canon EOS 200D II',
-              disk_free_gb: 120,
-              app_version: '1.0.4',
-              last_heartbeat_at: ''
-            };
-          });
+          // Deduplicate and canonicalize managedIds:
+          // Any managedId that matches an existing machine's ID, license_id, or license_key_prefix
+          // will be mapped to the machine's true ID.
+          const updatedManagedIds = new Set<string>();
+          for (const mid of managedIds) {
+            const matchedMachine = fetchedMachines.find(m => 
+              m.id === mid || 
+              m.license_id === mid || 
+              (m.license_key_prefix && (mid === m.license_key_prefix || mid.startsWith(m.license_key_prefix)))
+            );
+            if (matchedMachine) {
+              updatedManagedIds.add(matchedMachine.id);
+            } else {
+              updatedManagedIds.add(mid);
+            }
+          }
+          this.saveManagedMachineIds(Array.from(updatedManagedIds));
 
-          this.machines.set(finalMachines);
+          // Build final unique machine list (keyed by m.id to strictly prevent any duplicates)
+          const machineMap = new Map<string, BoothMachine>();
+          
+          // 1. First add all fetched remote machines
+          for (const m of fetchedMachines) {
+            machineMap.set(m.id, m);
+          }
+
+          // 2. Only add placeholder if an ID in updatedManagedIds has NO remote machine at all
+          for (const mid of updatedManagedIds) {
+            if (!machineMap.has(mid)) {
+              const isAlreadyPresent = fetchedMachines.some(m => 
+                m.license_id === mid || 
+                (m.license_key_prefix && (mid === m.license_key_prefix || mid.startsWith(m.license_key_prefix)))
+              );
+              if (!isAlreadyPresent) {
+                machineMap.set(mid, {
+                  id: mid,
+                  name: `Phòng ${mid}`,
+                  store_id: 'store_hp_01',
+                  store_name: 'Tách Tách Studio',
+                  status: 'IDLE',
+                  paper_remaining: 700,
+                  paper_total_capacity: 700,
+                  printer_status: 'READY',
+                  camera_status: 'CONNECTED',
+                  camera_model: 'Canon EOS 200D II',
+                  disk_free_gb: 120,
+                  app_version: '1.0.4',
+                  last_heartbeat_at: ''
+                });
+              }
+            }
+          }
+
+          this.machines.set(Array.from(machineMap.values()));
 
           if (Array.isArray(data.recentTransactions)) {
             this.transactions.set(data.recentTransactions);
@@ -390,15 +419,17 @@ export class Admin implements OnInit, OnDestroy {
     } catch (e) {
       console.warn('Backend sync failed, updated locally', e);
     } finally {
-      // Add id to managed machine IDs
+      // Add ONLY canonical machine ID to managed machine IDs
       const currentIds = this.getManagedMachineIds();
-      if (!currentIds.includes(linkedMachineId)) {
-        currentIds.push(linkedMachineId);
+      const canonicalId = linkedMachineId || lookupKey;
+      const cleanedIds = new Set<string>();
+      for (const id of currentIds) {
+        if (id !== lookupKey && id !== canonicalId) {
+          cleanedIds.add(id);
+        }
       }
-      if (lookupKey && !currentIds.includes(lookupKey)) {
-        currentIds.push(lookupKey);
-      }
-      this.saveManagedMachineIds(currentIds);
+      cleanedIds.add(canonicalId);
+      this.saveManagedMachineIds(Array.from(cleanedIds));
 
       // Refresh live dashboard from Cloudflare
       await this.fetchCloudflareDashboard(true);
@@ -421,13 +452,22 @@ export class Admin implements OnInit, OnDestroy {
           'Authorization': `Bearer ${this.adminSecret().trim()}`
         }
       });
-      this.successMessage.set(`Đã xóa buồng chụp ${machineId} khỏi danh sách!`);
+      this.successMessage.set(`Đã xóa buồng chụp khỏi danh sách!`);
       setTimeout(() => this.successMessage.set(''), 3000);
     } catch {
       // Fallback
     } finally {
-      // Remove from managed machine IDs
-      const currentIds = this.getManagedMachineIds().filter(id => id !== machineId);
+      // Find machine to get its license prefix if any
+      const target = this.machines().find(m => m.id === machineId);
+      const prefix = target?.license_key_prefix;
+
+      // Remove machine and any matching keys from managed machine IDs
+      const currentIds = this.getManagedMachineIds().filter(id => {
+        if (id === machineId) return false;
+        if (prefix && (id === prefix || id.startsWith(prefix))) return false;
+        if (target?.license_id && id === target.license_id) return false;
+        return true;
+      });
       this.saveManagedMachineIds(currentIds);
 
       this.machines.update(list => list.filter(m => m.id !== machineId));
