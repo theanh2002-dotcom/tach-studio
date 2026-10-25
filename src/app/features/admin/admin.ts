@@ -335,18 +335,29 @@ export class Admin implements OnInit, OnDestroy {
 
   async saveMachineModal() {
     const form = this.editForm();
-    const id = form.id.trim();
-    if (!id || !form.name.trim()) {
-      alert('Vui lòng nhập đầy đủ Mã phòng và Tên phòng chụp!');
+    const isCreate = this.isCreateMode();
+
+    const licenseInput = form.license_id.trim();
+    const idInput = form.id.trim();
+    const lookupKey = isCreate ? (licenseInput || idInput) : idInput;
+
+    if (!lookupKey) {
+      alert('Vui lòng nhập Mã Kích Hoạt (License Key) của phòng chụp!');
+      return;
+    }
+
+    if (!isCreate && !form.name.trim()) {
+      alert('Vui lòng nhập Tên phòng chụp!');
       return;
     }
 
     this.isSavingMachine.set(true);
-    const isCreate = this.isCreateMode();
     const endpoint = isCreate
       ? `${this.defaultWorkerUrl}/v1/admin/machines`
-      : `${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(id)}`;
+      : `${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(idInput)}`;
     const method = isCreate ? 'POST' : 'PUT';
+
+    let linkedMachineId = lookupKey;
 
     try {
       const response = await fetch(endpoint, {
@@ -356,9 +367,10 @@ export class Admin implements OnInit, OnDestroy {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id,
-          licenseId: form.license_id.trim() || undefined,
-          name: form.name.trim(),
+          id: idInput || undefined,
+          licenseKey: lookupKey,
+          licenseId: licenseInput || undefined,
+          name: form.name.trim() || undefined,
           storeId: form.store_id.trim(),
           paperRemaining: Number(form.paper_remaining),
           paperTotalCapacity: Number(form.paper_total_capacity),
@@ -368,7 +380,11 @@ export class Admin implements OnInit, OnDestroy {
       });
 
       if (response.ok) {
-        this.successMessage.set(isCreate ? 'Đã thêm phòng chụp mới thành công!' : 'Đã cập nhật thông tin phòng chụp thành công!');
+        const resData = await response.json();
+        if (resData.machine && resData.machine.id) {
+          linkedMachineId = resData.machine.id;
+        }
+        this.successMessage.set(isCreate ? 'Đã liên kết buồng chụp thành công!' : 'Đã cập nhật thông tin phòng chụp thành công!');
         setTimeout(() => this.successMessage.set(''), 4000);
       }
     } catch (e) {
@@ -376,47 +392,16 @@ export class Admin implements OnInit, OnDestroy {
     } finally {
       // Add id to managed machine IDs
       const currentIds = this.getManagedMachineIds();
-      if (!currentIds.includes(id)) {
-        currentIds.push(id);
-        this.saveManagedMachineIds(currentIds);
+      if (!currentIds.includes(linkedMachineId)) {
+        currentIds.push(linkedMachineId);
       }
+      if (lookupKey && !currentIds.includes(lookupKey)) {
+        currentIds.push(lookupKey);
+      }
+      this.saveManagedMachineIds(currentIds);
 
-      // Local reactive update
-      if (isCreate) {
-        const newMachine: BoothMachine = {
-          id,
-          license_id: form.license_id.trim() || undefined,
-          store_id: form.store_id.trim(),
-          store_name: 'Tách Tách Studio',
-          name: form.name.trim(),
-          status: 'IDLE',
-          paper_remaining: Number(form.paper_remaining),
-          paper_total_capacity: Number(form.paper_total_capacity),
-          printer_status: form.printer_status,
-          camera_status: 'CONNECTED',
-          camera_model: form.camera_model.trim(),
-          disk_free_gb: 120,
-          app_version: '1.0.4',
-          last_heartbeat_at: new Date().toISOString()
-        };
-        this.machines.update(list => [...list.filter(m => m.id !== id), newMachine]);
-      } else {
-        this.machines.update(list => list.map(m => {
-          if (m.id === id) {
-            return {
-              ...m,
-              name: form.name.trim(),
-              license_id: form.license_id.trim() || undefined,
-              store_id: form.store_id.trim(),
-              paper_remaining: Number(form.paper_remaining),
-              paper_total_capacity: Number(form.paper_total_capacity),
-              camera_model: form.camera_model.trim(),
-              printer_status: form.printer_status
-            };
-          }
-          return m;
-        }));
-      }
+      // Refresh live dashboard from Cloudflare
+      await this.fetchCloudflareDashboard(true);
 
       this.isSavingMachine.set(false);
       this.isMachineModalOpen.set(false);

@@ -578,13 +578,13 @@
         <!-- Modal Header -->
         <div class="flex items-center justify-between pb-4 border-b border-[#E8DDD2] mb-6">
           <div class="flex items-center gap-2.5">
-            <span class="text-2xl">{{ isCreateMode() ? '➕' : '✏️' }}</span>
+            <span class="text-2xl">{{ isCreateMode() ? '🔗' : '✏️' }}</span>
             <div>
               <h3 class="font-serif font-bold text-lg text-[#681423]">
-                {{ isCreateMode() ? 'Thêm Buồng Chụp Mới' : 'Sửa Thông Tin Phòng Chụp' }}
+                {{ isCreateMode() ? 'Liên Kết Buồng Chụp Bằng Mã Kích Hoạt' : 'Sửa Thông Tin Phòng Chụp' }}
               </h3>
               <p class="text-xs text-[#2C1A1D]/60 font-sans">
-                {{ isCreateMode() ? 'Đăng ký thêm buồng chụp photobooth vào hệ thống' : 'Cập nhật tên phòng, cuộn giấy và máy ảnh' }}
+                {{ isCreateMode() ? 'Nhập mã kích hoạt (License Key) của phần mềm phòng máy tại studio để quản lý' : 'Cập nhật tên phòng, cuộn giấy và máy ảnh' }}
               </p>
             </div>
           </div>
@@ -596,83 +596,87 @@
         <!-- Form Body -->
         <div class="space-y-4 font-sans text-xs">
           
-          <!-- Mã buồng chụp -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Mã Buồng Chụp (Machine ID) *</label>
-            <input type="text" [(ngModel)]="editForm().id" [disabled]="!isCreateMode()"
-                   placeholder="vd: BOOTH_GP_01"
-                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] disabled:opacity-60" />
-            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
-              Mã này được cài đặt trên phần mềm kiosk máy tính để gửi heartbeat.
-            </span>
-          </div>
-
-          <!-- Tên phòng hiển thị -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Tên Phòng Hiển Thị (Studio Room Name) *</label>
-            <input type="text" [(ngModel)]="editForm().name"
-                   placeholder="vd: Phòng Kem Vintage 01, Phòng Xám Seoul 02, Phòng Hồng Pastel"
-                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
-          </div>
-
-          <!-- Chi nhánh / Quán -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Chi Nhánh / Cơ Sở (Store ID)</label>
-            <select [(ngModel)]="editForm().store_id"
-                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
-              <option value="store_hp_01">Tách Tách Photobooth — Thanh Miện, Hải Phòng</option>
-              <option value="store_main_01">Tách Tách Photobooth — Cơ Sở Chính</option>
-            </select>
-          </div>
-
-          <!-- Mã Bản Quyền Liên Kết -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Mã Bản Quyền Liên Kết (License ID)</label>
-            <input type="text" [(ngModel)]="editForm().license_id"
-                   placeholder="vd: lic_xxxx (Tự động gán khi máy kích hoạt bản quyền)"
-                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
-            <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
-              Liên kết trực tiếp buồng chụp này với License LumiBooth.
-            </span>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <!-- Dung lượng cuộn giấy tối đa -->
+          <!-- CHẾ ĐỘ THÊM MỚI: CHỈ CẦN NHẬP MÃ KÍCH HOẠT (LICENSE KEY) -->
+          <ng-container *ngIf="isCreateMode()">
             <div>
-              <label class="block font-bold text-[#2C1A1D] mb-1">Sức Chứa Cuộn Giấy (Tờ)</label>
-              <input type="number" [(ngModel)]="editForm().paper_total_capacity" min="100" max="1000"
-                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
-              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">DNP RX1HS: 700 tờ</span>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Mã Kích Hoạt Bản Quyền (License Key) *</label>
+              <input type="text" [(ngModel)]="editForm().license_id"
+                     placeholder="vd: LB-VIP-F... hoặc dán toàn bộ mã kích hoạt"
+                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] font-mono text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+              <span class="text-[10px] text-[#2C1A1D]/60 mt-1.5 block leading-relaxed">
+                🔑 Nhập mã kích hoạt bạn dùng để kích hoạt LumiBooth trên máy tính phòng chụp. Hệ thống sẽ tự động liên kết máy tính, theo dõi cuộn giấy, máy ảnh và doanh thu của buồng đó.
+              </span>
             </div>
 
-            <!-- Số lượng giấy hiện tại -->
             <div>
-              <label class="block font-bold text-[#2C1A1D] mb-1">Số Ảnh Còn Lại Hiện Tại</label>
-              <input type="number" [(ngModel)]="editForm().paper_remaining" min="0" max="1000"
+              <label class="block font-bold text-[#2C1A1D] mb-1">Tên Phòng Hiển Thị (Tùy chọn)</label>
+              <input type="text" [(ngModel)]="editForm().name"
+                     placeholder="vd: Phòng Kem Vintage 01, Buồng Chụp 1 (để trống sẽ tự lấy tên máy)"
                      class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
-              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">Cập nhật số đếm thực tế</span>
+              <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">
+                Tên gợi nhớ để hiển thị trên Dashboard quản lý của quán.
+              </span>
             </div>
-          </div>
 
-          <!-- Dòng máy ảnh DSLR -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Model Máy Ảnh (Camera Model)</label>
-            <input type="text" [(ngModel)]="editForm().camera_model"
-                   placeholder="Canon EOS 200D II, Canon EOS R50, Sony Alpha A6400"
-                   class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
-          </div>
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Chi Nhánh / Cơ Sở (Store ID)</label>
+              <select [(ngModel)]="editForm().store_id"
+                      class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
+                <option value="store_hp_01">Tách Tách Photobooth — Thanh Miện, Hải Phòng</option>
+                <option value="store_main_01">Tách Tách Photobooth — Cơ Sở Chính</option>
+              </select>
+            </div>
+          </ng-container>
 
-          <!-- Trạng thái máy in -->
-          <div>
-            <label class="block font-bold text-[#2C1A1D] mb-1">Trạng Thái Máy In (Printer Status)</label>
-            <select [(ngModel)]="editForm().printer_status"
-                    class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
-              <option value="READY">READY — Sẵn sàng in</option>
-              <option value="PRINTING">PRINTING — Đang in ảnh</option>
-              <option value="OUT_OF_PAPER">OUT_OF_PAPER — Hết giấy in</option>
-              <option value="PAPER_JAM">PAPER_JAM — Kẹt giấy / lỗi cơ khí</option>
-            </select>
-          </div>
+          <!-- CHẾ ĐỘ SỬA: DÀNH CHO CẬP NHẬT THÔNG SỐ BUỒNG ĐÃ CÓ -->
+          <ng-container *ngIf="!isCreateMode()">
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Mã Buồng Chụp Kỹ Thuật (Machine ID)</label>
+              <input type="text" [value]="editForm().id" disabled
+                     class="w-full px-4 py-2 rounded-xl border border-[#E8DDD2] bg-gray-100 font-mono text-xs text-gray-500 cursor-not-allowed" />
+            </div>
+
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Tên Phòng Hiển Thị (Studio Room Name) *</label>
+              <input type="text" [(ngModel)]="editForm().name"
+                     placeholder="vd: Phòng Kem Vintage 01, Phòng Xám Seoul 02"
+                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block font-bold text-[#2C1A1D] mb-1">Sức Chứa Cuộn Giấy (Tờ)</label>
+                <input type="number" [(ngModel)]="editForm().paper_total_capacity" min="100" max="1000"
+                       class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+                <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">DNP RX1HS: 700 tờ</span>
+              </div>
+
+              <div>
+                <label class="block font-bold text-[#2C1A1D] mb-1">Số Ảnh Còn Lại Hiện Tại</label>
+                <input type="number" [(ngModel)]="editForm().paper_remaining" min="0" max="1000"
+                       class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+                <span class="text-[10px] text-[#2C1A1D]/50 mt-1 block">Cập nhật số đếm thực tế</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Model Máy Ảnh (Camera Model)</label>
+              <input type="text" [(ngModel)]="editForm().camera_model"
+                     placeholder="Canon EOS 200D II, Canon EOS R50, Sony Alpha A6400"
+                     class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965]" />
+            </div>
+
+            <div>
+              <label class="block font-bold text-[#2C1A1D] mb-1">Trạng Thái Máy In (Printer Status)</label>
+              <select [(ngModel)]="editForm().printer_status"
+                      class="w-full px-4 py-2.5 rounded-xl border border-[#E8DDD2] text-sm focus:outline-none focus:ring-2 focus:ring-[#C89965] bg-white">
+                <option value="READY">READY — Sẵn sàng in</option>
+                <option value="PRINTING">PRINTING — Đang in ảnh</option>
+                <option value="OUT_OF_PAPER">OUT_OF_PAPER — Hết giấy in</option>
+                <option value="PAPER_JAM">PAPER_JAM — Kẹt giấy / lỗi cơ khí</option>
+              </select>
+            </div>
+          </ng-container>
 
         </div>
 
@@ -684,8 +688,8 @@
           </button>
           <button type="button" (click)="saveMachineModal()" [disabled]="isSavingMachine()"
                   class="px-6 py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-semibold shadow flex items-center gap-2 transition-all disabled:opacity-50">
-            <span>💾</span>
-            <span>{{ isSavingMachine() ? 'Đang Lưu...' : (isCreateMode() ? 'Tạo Buồng Chụp' : 'Lưu Thay Đổi') }}</span>
+            <span>{{ isCreateMode() ? '🔗' : '💾' }}</span>
+            <span>{{ isSavingMachine() ? 'Đang Xử Lý...' : (isCreateMode() ? 'Liên Kết Phòng Chụp' : 'Lưu Thay Đổi') }}</span>
           </button>
         </div>
 
