@@ -62,13 +62,13 @@ export class Admin implements OnInit, OnDestroy {
   successMessage = signal<string>('');
   resettingMachineId = signal<string | null>(null);
 
-  // Data Signals
+  // Data Signals (Clean initialization with no mock data)
   overview = signal<DashboardOverview>({
-    today_sessions: 28,
-    today_revenue: 4250000,
-    today_prints: 86,
-    qr_revenue: 3180000,
-    cash_revenue: 1070000
+    today_sessions: 0,
+    today_revenue: 0,
+    today_prints: 0,
+    qr_revenue: 0,
+    cash_revenue: 0
   });
 
   // Modal State for Editing / Creating Machine
@@ -118,87 +118,24 @@ export class Admin implements OnInit, OnDestroy {
     printer_status: 'READY'
   });
 
-  machines = signal<BoothMachine[]>([
-    {
-      id: 'BOOTH_HP_01',
-      license_id: 'lic_tach_01',
-      license_key_prefix: 'LUMI-89AB',
-      license_plan: 'standard',
-      license_expires_at: '2027-10-20',
-      store_id: 'store_hp_01',
-      store_name: 'Tách Tách Hải Phòng',
-      name: 'Phòng Kem Vintage 01',
-      status: 'IDLE',
-      paper_remaining: 520,
-      paper_total_capacity: 700,
-      printer_status: 'READY',
-      camera_status: 'CONNECTED',
-      camera_model: 'Canon EOS 200D II',
-      disk_free_gb: 142.5,
-      app_version: '1.0.4',
-      last_heartbeat_at: new Date(Date.now() - 60000).toISOString()
-    },
-    {
-      id: 'BOOTH_HP_02',
-      license_id: 'lic_tach_02',
-      license_key_prefix: 'LUMI-CD45',
-      license_plan: 'standard',
-      license_expires_at: '2027-12-31',
-      store_id: 'store_hp_01',
-      store_name: 'Tách Tách Hải Phòng',
-      name: 'Phòng Xám Seoul 02',
-      status: 'IN_SESSION',
-      paper_remaining: 18,
-      paper_total_capacity: 700,
-      printer_status: 'READY',
-      camera_status: 'CONNECTED',
-      camera_model: 'Canon EOS 200D II',
-      disk_free_gb: 98.2,
-      app_version: '1.0.4',
-      last_heartbeat_at: new Date(Date.now() - 30000).toISOString()
-    }
-  ]);
+  // Managed machines & transactions - strictly isolated (no mock data)
+  machines = signal<BoothMachine[]>([]);
+  transactions = signal<BoothTransaction[]>([]);
 
-  transactions = signal<BoothTransaction[]>([
-    {
-      id: 'tx_01',
-      machine_id: 'BOOTH_HP_02',
-      machine_name: 'Phòng Xám Seoul 02',
-      store_name: 'Tách Tách Hải Phòng',
-      session_code: '#ses_89ab12',
-      package_name: 'Gói Nhóm Bạn Thân (100k)',
-      total_amount: 100000,
-      print_copies: 4,
-      payment_method: 'VIETQR_SEPAY',
-      payment_status: 'PAID',
-      created_at: new Date(Date.now() - 15 * 60000).toISOString()
-    },
-    {
-      id: 'tx_02',
-      machine_id: 'BOOTH_HP_01',
-      machine_name: 'Phòng Kem Vintage 01',
-      session_code: '#ses_77cd34',
-      package_name: 'Gói Solo & Couple (80k)',
-      total_amount: 80000,
-      print_copies: 2,
-      payment_method: 'CASH',
-      payment_status: 'PAID',
-      created_at: new Date(Date.now() - 45 * 60000).toISOString()
-    },
-    {
-      id: 'tx_03',
-      machine_id: 'ONLINE_ORDER',
-      machine_name: 'Web In Ảnh Online',
-      store_name: 'Tách Tách Photobooth',
-      session_code: '#order_55ef12',
-      package_name: 'Đẩy Ảnh In Theo Yêu Cầu (6 ảnh)',
-      total_amount: 90000,
-      print_copies: 6,
-      payment_method: 'VIETQR_SEPAY',
-      payment_status: 'PAID',
-      created_at: new Date(Date.now() - 75 * 60000).toISOString()
+  private readonly MANAGED_MACHINES_KEY = 'tach_managed_machine_ids';
+
+  getManagedMachineIds(): string[] {
+    try {
+      const raw = localStorage.getItem(this.MANAGED_MACHINES_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
-  ]);
+  }
+
+  saveManagedMachineIds(ids: string[]) {
+    localStorage.setItem(this.MANAGED_MACHINES_KEY, JSON.stringify(ids));
+  }
 
   private refreshIntervalId: any = null;
   private readonly defaultWorkerUrl = 'https://tanhbooth-api.laihoanganh456.workers.dev';
@@ -281,8 +218,24 @@ export class Admin implements OnInit, OnDestroy {
     if (!silent) this.isLoading.set(true);
     this.errorMessage.set('');
 
+    const managedIds = this.getManagedMachineIds();
+    if (managedIds.length === 0) {
+      this.machines.set([]);
+      this.transactions.set([]);
+      this.overview.set({
+        today_sessions: 0,
+        today_revenue: 0,
+        today_prints: 0,
+        qr_revenue: 0,
+        cash_revenue: 0
+      });
+      if (!silent) this.isLoading.set(false);
+      this.cdr.markForCheck();
+      return;
+    }
+
     try {
-      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard`, {
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard?machineIds=${encodeURIComponent(managedIds.join(','))}&storeId=store_hp_01`, {
         headers: {
           'Authorization': `Bearer ${this.adminSecret().trim()}`,
           'Accept': 'application/json'
@@ -293,11 +246,39 @@ export class Admin implements OnInit, OnDestroy {
         const data = await response.json();
         if (data.ok) {
           if (data.overview) this.overview.set(data.overview);
-          if (Array.isArray(data.machines) && data.machines.length > 0) {
-            this.machines.set(data.machines);
-          }
-          if (Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0) {
+          
+          const fetchedMachines: BoothMachine[] = Array.isArray(data.machines) ? data.machines : [];
+          const existingLocal = this.machines();
+          
+          // Only show machines that are in managedIds
+          const finalMachines: BoothMachine[] = managedIds.map(id => {
+            const foundRemote = fetchedMachines.find(m => m.id === id || m.license_id === id);
+            if (foundRemote) return foundRemote;
+            const foundLocal = existingLocal.find(m => m.id === id);
+            if (foundLocal) return foundLocal;
+            return {
+              id,
+              name: `Phòng ${id}`,
+              store_id: 'store_hp_01',
+              store_name: 'Tách Tách Studio',
+              status: 'IDLE',
+              paper_remaining: 700,
+              paper_total_capacity: 700,
+              printer_status: 'READY',
+              camera_status: 'CONNECTED',
+              camera_model: 'Canon EOS 200D II',
+              disk_free_gb: 120,
+              app_version: '1.0.4',
+              last_heartbeat_at: ''
+            };
+          });
+
+          this.machines.set(finalMachines);
+
+          if (Array.isArray(data.recentTransactions)) {
             this.transactions.set(data.recentTransactions);
+          } else {
+            this.transactions.set([]);
           }
         }
       } else if (response.status === 401 || response.status === 403) {
@@ -305,7 +286,7 @@ export class Admin implements OnInit, OnDestroy {
         this.isAuthenticated.set(false);
         this.errorMessage.set('Phiên đăng nhập đã hết hạn. Vui lòng nhập lại Admin Secret.');
       } else if (!silent) {
-        console.warn('Could not connect to live Cloudflare Worker, showing local preview state.');
+        console.warn('Could not connect to live Cloudflare Worker.');
       }
     } catch (e: any) {
       if (!silent) {
@@ -320,12 +301,11 @@ export class Admin implements OnInit, OnDestroy {
   // Machine CRUD Modal Management
   openCreateMachineModal() {
     this.isCreateMode.set(true);
-    const nextIndex = this.machines().length + 1;
     this.editForm.set({
-      id: `BOOTH_HP_0${nextIndex}`,
+      id: '',
       license_id: '',
       store_id: 'store_hp_01',
-      name: `Phòng Chụp 0${nextIndex}`,
+      name: '',
       paper_remaining: 700,
       paper_total_capacity: 700,
       camera_model: 'Canon EOS 200D II',
@@ -355,7 +335,8 @@ export class Admin implements OnInit, OnDestroy {
 
   async saveMachineModal() {
     const form = this.editForm();
-    if (!form.id.trim() || !form.name.trim()) {
+    const id = form.id.trim();
+    if (!id || !form.name.trim()) {
       alert('Vui lòng nhập đầy đủ Mã phòng và Tên phòng chụp!');
       return;
     }
@@ -364,7 +345,7 @@ export class Admin implements OnInit, OnDestroy {
     const isCreate = this.isCreateMode();
     const endpoint = isCreate
       ? `${this.defaultWorkerUrl}/v1/admin/machines`
-      : `${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(form.id)}`;
+      : `${this.defaultWorkerUrl}/v1/admin/machines/${encodeURIComponent(id)}`;
     const method = isCreate ? 'POST' : 'PUT';
 
     try {
@@ -375,7 +356,7 @@ export class Admin implements OnInit, OnDestroy {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          id: form.id.trim(),
+          id,
           licenseId: form.license_id.trim() || undefined,
           name: form.name.trim(),
           storeId: form.store_id.trim(),
@@ -393,10 +374,17 @@ export class Admin implements OnInit, OnDestroy {
     } catch (e) {
       console.warn('Backend sync failed, updated locally', e);
     } finally {
+      // Add id to managed machine IDs
+      const currentIds = this.getManagedMachineIds();
+      if (!currentIds.includes(id)) {
+        currentIds.push(id);
+        this.saveManagedMachineIds(currentIds);
+      }
+
       // Local reactive update
       if (isCreate) {
         const newMachine: BoothMachine = {
-          id: form.id.trim(),
+          id,
           license_id: form.license_id.trim() || undefined,
           store_id: form.store_id.trim(),
           store_name: 'Tách Tách Studio',
@@ -411,10 +399,10 @@ export class Admin implements OnInit, OnDestroy {
           app_version: '1.0.4',
           last_heartbeat_at: new Date().toISOString()
         };
-        this.machines.update(list => [...list, newMachine]);
+        this.machines.update(list => [...list.filter(m => m.id !== id), newMachine]);
       } else {
         this.machines.update(list => list.map(m => {
-          if (m.id === form.id) {
+          if (m.id === id) {
             return {
               ...m,
               name: form.name.trim(),
@@ -437,7 +425,7 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   async deleteMachine(machineId: string) {
-    if (!confirm(`Bạn có chắc chắn muốn xóa buồng chụp ${machineId} khỏi hệ thống giám sát?`)) {
+    if (!confirm(`Bạn có chắc chắn muốn xóa buồng chụp ${machineId} khỏi danh sách quản lý?`)) {
       return;
     }
 
@@ -448,11 +436,15 @@ export class Admin implements OnInit, OnDestroy {
           'Authorization': `Bearer ${this.adminSecret().trim()}`
         }
       });
-      this.successMessage.set(`Đã xóa buồng chụp ${machineId}!`);
+      this.successMessage.set(`Đã xóa buồng chụp ${machineId} khỏi danh sách!`);
       setTimeout(() => this.successMessage.set(''), 3000);
     } catch {
       // Fallback
     } finally {
+      // Remove from managed machine IDs
+      const currentIds = this.getManagedMachineIds().filter(id => id !== machineId);
+      this.saveManagedMachineIds(currentIds);
+
       this.machines.update(list => list.filter(m => m.id !== machineId));
       this.cdr.markForCheck();
     }

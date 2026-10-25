@@ -109,8 +109,8 @@
           <div class="text-xl sm:text-2xl font-serif font-bold text-[#681423]">
             {{ formatVND(overview().today_revenue) }}
           </div>
-          <div class="text-[11px] text-emerald-600 font-bold mt-1">
-            +15% so với hôm qua
+          <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
+            Tổng doanh thu thực tế hôm nay
           </div>
         </div>
       </div>
@@ -126,7 +126,7 @@
             {{ overview().today_sessions }} <span class="text-sm font-sans font-normal text-[#2C1A1D]/60">phiên</span>
           </div>
           <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
-            Cao điểm: 15h00 - 17h30
+            Số phiên chụp hoàn tất trong ngày
           </div>
         </div>
       </div>
@@ -142,7 +142,7 @@
             {{ overview().today_prints }} <span class="text-sm font-sans font-normal text-[#2C1A1D]/60">bản</span>
           </div>
           <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
-            Khung ưa thích: Strip 1x4 (72%)
+            Tổng số bản in đã xuất từ máy
           </div>
         </div>
       </div>
@@ -185,7 +185,24 @@
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Empty state when no machines are managed yet -->
+      <div *ngIf="machines().length === 0" class="bg-white rounded-3xl p-8 sm:p-10 border border-[#E8DDD2] text-center shadow-sm">
+        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[#FAF6F0] flex items-center justify-center text-2xl border border-[#E8DDD2]">
+          📷
+        </div>
+        <h4 class="font-serif font-bold text-base text-[#681423] mb-1.5">Chưa có buồng chụp nào trong danh sách quản lý</h4>
+        <p class="text-xs text-[#2C1A1D]/60 max-w-lg mx-auto mb-6 leading-relaxed">
+          Dữ liệu phòng chụp được bảo mật độc lập cho riêng studio của bạn. Bấm <b>Thêm Buồng Chụp Mới</b> và nhập Mã phòng (Machine ID) hoặc License Key phòng chụp tại studio để bắt đầu theo dõi.
+        </p>
+        <button type="button" 
+                (click)="openCreateMachineModal()"
+                class="px-5 py-2.5 bg-[#681423] hover:bg-[#7E1B2E] text-white rounded-full text-xs font-semibold inline-flex items-center gap-2 shadow transition-all">
+          <span>➕</span>
+          <span>Thêm Buồng Chụp Của Studio</span>
+        </button>
+      </div>
+
+      <div *ngIf="machines().length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div *ngFor="let m of machines()" 
              class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DDD2] shadow-sm flex flex-col justify-between relative overflow-hidden"
              [ngClass]="m.paper_remaining <= 20 ? 'border-red-300 ring-2 ring-red-100' : ''">
@@ -320,6 +337,11 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E8DDD2] text-[#2C1A1D]">
+              <tr *ngIf="transactions().length === 0">
+                <td colspan="7" class="py-12 text-center text-xs text-[#2C1A1D]/50 italic">
+                  Chưa có giao dịch chụp ảnh nào được ghi nhận hôm nay.
+                </td>
+              </tr>
               <tr *ngFor="let tx of transactions()" class="hover:bg-gray-50/70 transition-colors">
                 <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at) }}</td>
                 <td class="py-3 px-4 font-semibold text-[#681423]">{{ tx.machine_name || tx.machine_id }}</td>
