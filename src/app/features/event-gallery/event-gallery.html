@@ -45,7 +45,7 @@
     <!-- MAIN PHOTO VIEWER (Chế độ xem trình chiếu ảnh lớn) -->
     <div class="gallery-main-photo" *ngIf="photoCount() > 0 && viewMode() === 'slideshow'"
          (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEndMain($event)">
-      <div class="main-photo-container">
+      <div class="main-photo-container" [class.main-photo-container--strip]="isStripSelected()">
         <!-- Counter badge -->
         <div class="photo-counter">
           {{ selectedIndex() + 1 }}/{{ photoCount() }}

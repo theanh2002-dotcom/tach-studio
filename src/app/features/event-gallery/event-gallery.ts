@@ -44,6 +44,10 @@ export class EventGallery implements OnInit, OnDestroy {
 
   // ===== COMPUTED =====
   selectedPhoto = computed(() => this.photos()[this.selectedIndex()]);
+  isStripSelected = computed(() => {
+    const p = this.selectedPhoto();
+    return !!p && (p.role === 'final' || (p.name ? p.name.toLowerCase().includes('print') : false));
+  });
   photoCount = computed(() => this.photos().length);
   sessionCount = computed(() => this.sessions().length);
   activeSessionMedia = computed(() => {
