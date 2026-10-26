@@ -990,7 +990,7 @@ export class EventGallery implements OnInit, OnDestroy {
   getPreviewSrc(photo: GalleryPhoto): string {
     if (!photo) return '';
     if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
-    return this.getLightboxSrc(photo);
+    return photo.thumbnailUrl || this.getLightboxSrc(photo);
   }
 
   readonly VIDEO_FALLBACK_SVG = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%231a1a24"/><circle cx="150" cy="150" r="42" fill="%23d4af37" opacity="0.85"/><polygon points="142,135 166,150 142,165" fill="%23ffffff"/><text x="150" y="222" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="14" font-weight="700" fill="%23d4af37" text-anchor="middle" letter-spacing="1">VIDEO BTS</text></svg>';

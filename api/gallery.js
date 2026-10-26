@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
     // Giữ polling tối đa 5 giây nhưng cho phép browser cache cùng response,
     // tránh gọi lại API vô ích giữa các lần render trên mobile.
-    res.setHeader('Cache-Control', 'public, max-age=5, s-maxage=5, stale-while-revalidate=10');
+    res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=30, stale-while-revalidate=60');
     const status = mode === 'SESSION' && media.length === 0 ? 'PENDING' : 'READY';
     res.status(200).json({
       mode,
@@ -119,15 +119,19 @@ async function resolveEventFolder(eventPublicId) {
   const secret = (GALLERY_RESOLVER_SECRET || '').trim();
   if (secret && GALLERY_RESOLVER_URL) {
     try {
-      const response = await fetchWithTimeout(
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const response = await fetch(
         `${GALLERY_RESOLVER_URL.replace(/\/$/, '')}/v1/gallery/events/${encodeURIComponent(eventPublicId)}/folder`,
         {
           headers: {
             Authorization: `Bearer ${secret}`,
             Accept: 'application/json'
-          }
+          },
+          signal: controller.signal
         }
-      );
+      ).finally(() => clearTimeout(timeoutId));
+
       if (response.ok) {
         const payload = await response.json();
         if (payload?.status === 'PENDING') return { status: 'PENDING' };
@@ -138,7 +142,7 @@ async function resolveEventFolder(eventPublicId) {
         console.warn(`[gallery] Resolver worker returned ${response.status}, falling back to direct Drive search.`);
       }
     } catch (err) {
-      console.warn('[gallery] Resolver worker error, falling back to direct Drive search:', err?.message || err);
+      console.warn('[gallery] Resolver worker error or timeout, falling back to direct Drive search:', err?.message || err);
     }
   }
 
@@ -386,8 +390,8 @@ function toPublicMedia(item, roleMeta = null) {
     slotIndex: roleMeta?.slotIndex || null,
     sessionId: roleMeta?.sessionId || null,
     createdAt: item.createdTime || item.modifiedTime || new Date().toISOString(),
-    thumbnailUrl: kind === 'video' ? mediaBase : `${mediaBase}?variant=image&size=2560`,
-    mediaUrl: kind === 'video' ? mediaBase : `${mediaBase}?variant=image&size=2560`,
+    thumbnailUrl: kind === 'video' ? mediaBase : `${mediaBase}?variant=image&size=720`,
+    mediaUrl: kind === 'video' ? mediaBase : `${mediaBase}?variant=image&size=1080`,
     lightboxUrl: kind === 'video' ? mediaBase : `${mediaBase}?variant=image&size=2560`,
     downloadUrl: `${mediaBase}/download`
   };
@@ -450,11 +454,11 @@ function isCursor(value) {
 }
 
 function isEventPublicId(value) {
-  return typeof value === 'string' && /^evt_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}$/.test(value);
+  return typeof value === 'string' && /^evt_[0-9a-zA-Z_-]{8,64}$/.test(value);
 }
 
 function isSessionPublicId(value) {
-  return typeof value === 'string' && /^ses_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}$/.test(value);
+  return typeof value === 'string' && /^ses_[0-9a-zA-Z_-]{8,64}$/.test(value);
 }
 
 function escapeRegExp(value) {

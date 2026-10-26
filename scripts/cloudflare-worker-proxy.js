@@ -47,7 +47,7 @@ export default {
 
       const mediaRoute = getMediaRoute(url);
       if (mediaRoute) {
-        return await proxyOpaqueMedia(request, url, mediaRoute, env);
+        return await proxyOpaqueMedia(request, url, mediaRoute, env, ctx);
       }
 
       // Compatibility for old gallery bundles and QR links. This branch may
@@ -61,7 +61,18 @@ export default {
   }
 };
 
-async function proxyOpaqueMedia(request, url, route, env) {
+async function proxyOpaqueMedia(request, url, route, env, ctx) {
+  const cache = typeof caches !== 'undefined' && caches.default ? caches.default : null;
+  const cacheKey = new Request(url.toString(), { method: 'GET' });
+  const shouldCache = !route.download && request.method === 'GET' && !request.headers.has('Range');
+
+  if (cache && shouldCache) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse) {
+      return withCors(cachedResponse, request);
+    }
+  }
+
   const secrets = getCandidateSecrets(env);
   if (secrets.length === 0) return withCors(json({ error: 'Media is temporarily unavailable' }, 503), request);
 
@@ -114,6 +125,10 @@ async function proxyOpaqueMedia(request, url, route, env) {
     statusText: upstream.statusText,
     headers
   }), request);
+
+  if (cache && shouldCache && ctx && upstream.status === 200) {
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+  }
 
   return response;
 }

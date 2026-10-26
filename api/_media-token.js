@@ -9,11 +9,17 @@ const TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
  * the same MEDIA_TOKEN_SECRET binding.
  */
 export function createMediaToken(payload) {
-  const iv = randomBytes(12);
+  // Deterministic IV based on HMAC of fileId so that the media token is stable and 100% cacheable!
+  const fileKey = `${payload?.kind || 'image'}:${payload?.fileId || ''}`;
+  const iv = createHmac('sha256', getKey())
+    .update(`iv:${fileKey}`, 'utf8')
+    .digest()
+    .subarray(0, 12);
   const cipher = createCipheriv('aes-256-gcm', getKey(), iv);
   const body = Buffer.from(JSON.stringify({
     ...payload,
-    exp: Math.floor(Date.now() / 1000) + TOKEN_TTL_SECONDS
+    // Bucketed exp so that tokens remain identical for 30-day windows
+    exp: Math.floor(Date.now() / (30 * 86400000)) * (30 * 86400) + (90 * 86400)
   }), 'utf8');
   const encrypted = Buffer.concat([cipher.update(body), cipher.final()]);
   const tag = cipher.getAuthTag();
