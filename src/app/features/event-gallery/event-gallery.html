@@ -205,7 +205,7 @@
   <!-- CASE 2: LUỒNG XEM TOÀN BỘ SỰ KIỆN (EVENT FLOW - Lưới các phiên) -->
   <!-- ============================================================== -->
   <ng-container *ngIf="!isSingleSession()">
-    <!-- Header: Đếm tổng số ảnh & Trạng thái Live -->
+    <!-- Header: Đếm tổng số ảnh, Trạng thái Live & Nút Toggle Lưới / Feed -->
     <div class="gallery-header">
       <div class="header-meta">
         <span class="meta-badge">
@@ -220,37 +220,130 @@
           <span class="pulse-dot"></span>
           Đang cập nhật
         </span>
+
+        <!-- View Mode Toggle Group cho Luồng Sự Kiện: Masonry 2 cột vs Feed 1 cột -->
+        <div class="toggle-mode-group" *ngIf="photoCount() > 0">
+          <button class="toggle-btn" [class.toggle-btn--active]="eventViewMode() === 'masonry'" (click)="eventViewMode.set('masonry')" title="Lưới thác nước 2 cột (Khít không ô trống)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+              <rect x="3" y="3" width="7" height="11" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              <rect x="3" y="18" width="7" height="3" rx="1" />
+            </svg>
+          </button>
+          <button class="toggle-btn" [class.toggle-btn--active]="eventViewMode() === 'feed'" (click)="eventViewMode.set('feed')" title="Cuộn Feed lớn (1 cột)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="toggle-icon">
+              <rect x="4" y="3" width="16" height="18" rx="2" />
+              <line x1="8" y1="8" x2="16" y2="8" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Lưới ảnh toàn sự kiện: Mỗi ô là ảnh in của 1 phiên -->
-    <div class="photo-grid" *ngIf="photoCount() > 0">
-      <div *ngFor="let photo of photos(); let i = index" 
-           class="grid-item" 
-           [class.grid-item--new]="photo.isNew"
-           (click)="openSessionByPhoto(photo, i)">
-        <ng-container *ngIf="isVideo(photo); else eventGridImg">
-          <video [src]="getVideoPreviewSrc(photo)"
-                 preload="metadata"
-                 muted
-                 playsinline
-                 class="grid-video-preview"></video>
-        </ng-container>
-        <ng-template #eventGridImg>
-          <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
-        </ng-template>
-        
-        <span class="video-badge" *ngIf="isVideo(photo)">▶ VIDEO</span>
-        <span class="session-badge-pill" *ngIf="photo.sessionInfo?.shotCount">
-          +{{ photo.sessionInfo?.shotCount }}<span *ngIf="photo.sessionInfo?.hasBts"> • ▶</span>
-        </span>
-        
-        <div class="grid-overlay">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
-          </svg>
+    <!-- CHẾ ĐỘ 1: DUAL-COLUMN MASONRY (2 CỘT THÁC NƯỚC - KHÍT 100%, 0 Ô TRỐNG) -->
+    <div class="event-masonry" *ngIf="photoCount() > 0 && eventViewMode() === 'masonry'">
+      <!-- Cột trái (index chẵn: 0, 2, 4...) -->
+      <div class="masonry-col">
+        <div *ngFor="let item of leftColumnPhotos()" 
+             class="grid-item" 
+             [class.grid-item--new]="item.photo.isNew"
+             (click)="openSessionByPhoto(item.photo, item.index)">
+          <ng-container *ngIf="isVideo(item.photo); else eventImgLeft">
+            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline class="grid-video-preview"></video>
+          </ng-container>
+          <ng-template #eventImgLeft>
+            <img [src]="getPreviewSrc(item.photo)" [alt]="item.photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(item.photo)" />
+          </ng-template>
+          
+          <span class="video-badge" *ngIf="isVideo(item.photo)">▶ VIDEO</span>
+          <span class="session-badge-pill" *ngIf="item.photo.sessionInfo?.shotCount">
+            +{{ item.photo.sessionInfo?.shotCount }}<span *ngIf="item.photo.sessionInfo?.hasBts"> • ▶</span>
+          </span>
+          
+          <div class="grid-overlay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </div>
+          <span class="grid-new-badge" *ngIf="item.photo.isNew">Mới</span>
         </div>
-        <span class="grid-new-badge" *ngIf="photo.isNew">Mới</span>
+      </div>
+
+      <!-- Cột phải (index lẻ: 1, 3, 5...) -->
+      <div class="masonry-col">
+        <div *ngFor="let item of rightColumnPhotos()" 
+             class="grid-item" 
+             [class.grid-item--new]="item.photo.isNew"
+             (click)="openSessionByPhoto(item.photo, item.index)">
+          <ng-container *ngIf="isVideo(item.photo); else eventImgRight">
+            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline class="grid-video-preview"></video>
+          </ng-container>
+          <ng-template #eventImgRight>
+            <img [src]="getPreviewSrc(item.photo)" [alt]="item.photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(item.photo)" />
+          </ng-template>
+          
+          <span class="video-badge" *ngIf="isVideo(item.photo)">▶ VIDEO</span>
+          <span class="session-badge-pill" *ngIf="item.photo.sessionInfo?.shotCount">
+            +{{ item.photo.sessionInfo?.shotCount }}<span *ngIf="item.photo.sessionInfo?.hasBts"> • ▶</span>
+          </span>
+          
+          <div class="grid-overlay">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+          </div>
+          <span class="grid-new-badge" *ngIf="item.photo.isNew">Mới</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHẾ ĐỘ 2: CUỘN FEED 1 CỘT (INSTAGRAM STYLE - XEM ẢNH TO ĐÃ MẮT) -->
+    <div class="event-feed" *ngIf="photoCount() > 0 && eventViewMode() === 'feed'">
+      <div *ngFor="let photo of photos(); let i = index" 
+           class="feed-card"
+           [class.feed-card--new]="photo.isNew"
+           (click)="openSessionByPhoto(photo, i)">
+        
+        <!-- Header phiên chụp trong card feed -->
+        <div class="feed-card-header">
+          <div class="feed-card-meta">
+            <span class="feed-session-idx">Lượt chụp #{{ photoCount() - i }}</span>
+            <span class="feed-badge-new" *ngIf="photo.isNew">Mới chụp</span>
+          </div>
+          <span class="feed-media-count" *ngIf="photo.sessionInfo?.shotCount">
+            {{ (photo.sessionInfo?.shotCount ?? 0) + 1 }} ảnh<span *ngIf="photo.sessionInfo?.hasBts"> • 1 video</span>
+          </span>
+        </div>
+
+        <!-- Ảnh chính của phiên trong Feed -->
+        <div class="feed-card-media">
+          <ng-container *ngIf="isVideo(photo); else feedImg">
+            <video [src]="getVideoPreviewSrc(photo)" preload="metadata" controls playsinline class="feed-video"></video>
+          </ng-container>
+          <ng-template #feedImg>
+            <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
+          </ng-template>
+        </div>
+
+        <!-- Footer hành động của card feed -->
+        <div class="feed-card-footer" (click)="$event.stopPropagation()">
+          <button class="feed-btn feed-btn--view" (click)="openSessionByPhoto(photo, i)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+            </svg>
+            <span>Xem chi tiết</span>
+          </button>
+          <button class="feed-btn feed-btn--download" (click)="downloadPhoto(photo)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <span>Tải dải ảnh</span>
+          </button>
+        </div>
       </div>
     </div>
 

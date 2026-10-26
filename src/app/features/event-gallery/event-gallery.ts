@@ -4,6 +4,11 @@ import { ActivatedRoute } from '@angular/router';
 import { GoogleDriveGalleryService, GalleryPhoto, GallerySession } from './services/google-drive-gallery.service';
 
 /** Wrapper cho windowing - giữ index gốc để opacity toggle đúng */
+export interface MasonryPhotoItem {
+  photo: GalleryPhoto;
+  index: number;
+}
+
 export interface VisiblePhoto {
   photo: GalleryPhoto;
   originalIndex: number;
@@ -33,6 +38,7 @@ export class EventGallery implements OnInit, OnDestroy {
   errorMessage = signal<string | null>(null);
   galleryStatus = signal<'PENDING' | 'READY'>('PENDING');
   viewMode = signal<'slideshow' | 'grid'>('slideshow');
+  eventViewMode = signal<'masonry' | 'feed'>('masonry');
   loadedImages = signal<Set<string>>(new Set());
 
   // ===== ZIP & DOWNLOAD SIGNALS =====
@@ -47,6 +53,16 @@ export class EventGallery implements OnInit, OnDestroy {
   isStripSelected = computed(() => {
     const p = this.selectedPhoto();
     return !!p && (p.role === 'final' || (p.name ? p.name.toLowerCase().includes('print') : false));
+  });
+  leftColumnPhotos = computed<MasonryPhotoItem[]>(() => {
+    return this.photos()
+      .map((photo, index) => ({ photo, index }))
+      .filter((_, i) => i % 2 === 0);
+  });
+  rightColumnPhotos = computed<MasonryPhotoItem[]>(() => {
+    return this.photos()
+      .map((photo, index) => ({ photo, index }))
+      .filter((_, i) => i % 2 === 1);
   });
   photoCount = computed(() => this.photos().length);
   sessionCount = computed(() => this.sessions().length);
