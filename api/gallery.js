@@ -134,10 +134,10 @@ async function resolveEventFolder(eventPublicId) {
 
       if (response.ok) {
         const payload = await response.json();
-        if (payload?.status === 'PENDING') return { status: 'PENDING' };
         if (payload?.status === 'READY' && isSafeId(payload?.driveFolderId)) {
           return { status: 'READY', driveFolderId: payload.driveFolderId };
         }
+        // If worker returns PENDING or missing folder, fall through to direct Drive search as fallback
       } else {
         console.warn(`[gallery] Resolver worker returned ${response.status}, falling back to direct Drive search.`);
       }
@@ -260,7 +260,7 @@ function normalizeManifest(manifest) {
 }
 
 function parseSessionMediaName(name) {
-  const match = /^SB_(ses_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15})_(final|shot_([1-9][0-9]*)|bts)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
+  const match = /^SB_(ses_[0-9a-zA-Z_-]{8,64})_(final|shot_([1-9][0-9]*)|bts)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
   if (!match) return null;
   const sessionId = match[1];
   const roleType = match[2].toLowerCase();
@@ -471,11 +471,11 @@ function isCanonicalSessionMedia(name, sessionPublicId) {
 }
 
 function isCanonicalEventFinal(name) {
-  return /^SB_ses_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}_final\.(?:jpe?g|png|webp)$/i.test(String(name || ''));
+  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_final\.(?:jpe?g|png|webp)$/i.test(String(name || ''));
 }
 
 function isCanonicalEventMedia(name) {
-  return /^SB_ses_[0-9a-f]{12}7[0-9a-f]{3}[89ab][0-9a-f]{15}_(?:final|shot_[1-9][0-9]*|bts)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
+  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_(?:final|shot_[1-9][0-9]*|bts)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
 }
 
 function setCors(req, res) {
