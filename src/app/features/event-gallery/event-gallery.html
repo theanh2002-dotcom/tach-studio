@@ -20,6 +20,10 @@
           <span class="pulse-dot"></span>
           Đang cập nhật
         </span>
+        <button type="button" class="meta-badge meta-badge--pending" *ngIf="!isPolling() && galleryStatus() === 'PENDING' && photoCount() > 0" (click)="refreshNow()" title="Chạm để kiểm tra thêm ảnh từ buồng chụp">
+          <span class="pending-dot"></span>
+          Chưa đủ bộ (Bấm tải thêm)
+        </button>
 
         <!-- Nút làm mới nhanh cho phiên chụp -->
         <button class="header-refresh-btn" (click)="refreshNow()" [disabled]="isRefreshing()" title="Làm mới ảnh">

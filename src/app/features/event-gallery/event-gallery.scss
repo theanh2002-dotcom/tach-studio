@@ -121,9 +121,31 @@ $radius-sm: 10px;
     border-color: #bbf7d0;
     background: #f0fdf4;
   }
+
+  &--pending {
+    color: #b45309;
+    border-color: #fde68a;
+    background: #fffbeb;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #fef3c7;
+      border-color: #fcd34d;
+    }
+  }
 }
 
 // ===== PULSE DOT =====
+.pending-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #d97706;
+}
+
 .pulse-dot {
   display: inline-block;
   width: 8px;
