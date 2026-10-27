@@ -80,18 +80,44 @@ export default async function handler(req, res) {
         : normalizeManifest(source.manifest).map(item => toPublicMedia(item));
     }
 
-    // Giữ polling tối đa 5 giây nhưng cho phép browser cache cùng response,
-    // tránh gọi lại API vô ích giữa các lần render trên mobile.
+    if (mode === 'SESSION') {
+      // Luồng xem phiên riêng (quét QR sau chụp): Tuyệt đối KHÔNG cache trên CDN / Browser
+      // để ảnh và video vừa chụp tải lên từ máy Kiosk hiện ra ngay lập tức không bị trễ!
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      const hasFinal = media.some(m => m.role === 'final');
+      const hasShots = media.some(m => m.role === 'shot');
+      const hasVideo = media.some(m => m.kind === 'video');
+
+      // Phiên chụp hoàn tất khi đã có đủ ảnh in + ảnh chụp + video (hoặc từ 4 file trở lên)
+      const isComplete = media.length >= 4 || (hasFinal && hasShots && (hasVideo || media.length >= 3));
+      const status = media.length === 0 ? 'PENDING' : (isComplete ? 'READY' : 'PENDING');
+
+      res.status(200).json({
+        mode,
+        status,
+        event: isEventPublicId(requestedId) ? requestedId : null,
+        session: sessionPublicId || null,
+        sessions,
+        items: media,
+        pollAfterMs: 2500,
+        nextCursor: source.nextCursor || null
+      });
+      return;
+    }
+
+    // Luồng sự kiện chung (xem tất cả ảnh): Cache ngắn trên CDN
     res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=30, stale-while-revalidate=60');
-    const status = mode === 'SESSION' && media.length === 0 ? 'PENDING' : 'READY';
     res.status(200).json({
       mode,
-      status,
+      status: 'READY',
       event: isEventPublicId(requestedId) ? requestedId : null,
-      session: sessionPublicId || null,
+      session: null,
       sessions,
       items: media,
-      pollAfterMs: status === 'PENDING' ? 5000 : null,
+      pollAfterMs: null,
       nextCursor: source.nextCursor || null
     });
   } catch (error) {
@@ -260,11 +286,11 @@ function normalizeManifest(manifest) {
 }
 
 function parseSessionMediaName(name) {
-  const match = /^SB_(ses_[0-9a-zA-Z_-]{8,64})_(final|shot_([1-9][0-9]*)|bts)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
+  const match = /^SB_(ses_[0-9a-zA-Z_-]{8,64})_(final|shot_([1-9][0-9]*)|bts|animated)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
   if (!match) return null;
   const sessionId = match[1];
   const roleType = match[2].toLowerCase();
-  const role = roleType.startsWith('shot_') ? 'shot' : roleType;
+  const role = roleType === 'animated' ? 'bts' : (roleType.startsWith('shot_') ? 'shot' : roleType);
   const slotIndex = match[3] ? parseInt(match[3], 10) : null;
 
   let timestamp = 0;
@@ -475,7 +501,7 @@ function isCanonicalEventFinal(name) {
 }
 
 function isCanonicalEventMedia(name) {
-  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_(?:final|shot_[1-9][0-9]*|bts)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
+  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_(?:final|shot_[1-9][0-9]*|bts|animated)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
 }
 
 function setCors(req, res) {

@@ -21,6 +21,14 @@
           Đang cập nhật
         </span>
 
+        <!-- Nút làm mới nhanh cho phiên chụp -->
+        <button class="header-refresh-btn" (click)="refreshNow()" [disabled]="isRefreshing()" title="Làm mới ảnh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="header-refresh-icon" [class.spin-active]="isRefreshing()">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span class="refresh-text">{{ isRefreshing() ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
         <!-- View Mode Toggle Group -->
         <div class="toggle-mode-group" *ngIf="photoCount() > 0">
           <button class="toggle-btn" [class.toggle-btn--active]="viewMode() === 'slideshow'" (click)="viewMode.set('slideshow')" title="Xem trình chiếu">
@@ -258,6 +266,14 @@
           Đang cập nhật
         </span>
 
+        <!-- Nút làm mới nhanh cho phiên chụp -->
+        <button class="header-refresh-btn" (click)="refreshNow()" [disabled]="isRefreshing()" title="Làm mới ảnh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="header-refresh-icon" [class.spin-active]="isRefreshing()">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span class="refresh-text">{{ isRefreshing() ? 'Đang tải...' : 'Làm mới' }}</span>
+        </button>
+
         <!-- View Mode Toggle Group cho Luồng Sự Kiện: Masonry 2 cột vs Feed 1 cột -->
         <div class="toggle-mode-group" *ngIf="photoCount() > 0">
           <button class="toggle-btn" [class.toggle-btn--active]="eventViewMode() === 'masonry'" (click)="eventViewMode.set('masonry')" title="Lưới thác nước 2 cột (Khít không ô trống)">
@@ -410,8 +426,40 @@
   <p class="loading-text">Đang tải ảnh sự kiện...</p>
 </div>
 
-<!-- ===== EMPTY STATE ===== -->
-<div class="empty-state" *ngIf="!isLoading() && photoCount() === 0 && !errorMessage()">
+<!-- ===== WAITING STATE (Dành riêng cho luồng phiên chụp khi vừa quét QR xong) ===== -->
+<div class="session-waiting-state" *ngIf="isSingleSession() && !isLoading() && photoCount() === 0 && !errorMessage()">
+  <div class="waiting-card">
+    <div class="waiting-icon-container">
+      <div class="waiting-icon-halo"></div>
+      <div class="waiting-icon-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="waiting-icon">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </div>
+    </div>
+    <h2 class="waiting-title">Ảnh đang được tải lên...</h2>
+    <p class="waiting-subtitle">
+      Ảnh in và video hậu trường đang được đồng bộ trực tiếp từ buồng chụp.<br />
+      Vui lòng giữ màn hình, ảnh sẽ tự động hiện ra ngay khi sẵn sàng!
+    </p>
+
+    <div class="waiting-status-pill">
+      <span class="live-pulse-dot"></span>
+      <span>Đang tự động kiểm tra ảnh mới</span>
+    </div>
+
+    <button type="button" class="waiting-refresh-btn" (click)="refreshNow()" [disabled]="isRefreshing()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="refresh-btn-icon" [class.spin-active]="isRefreshing()">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      <span>{{ isRefreshing() ? 'Đang kiểm tra...' : 'Kiểm tra ảnh ngay' }}</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== EMPTY STATE (Dành cho luồng sự kiện chung nếu chưa có ảnh) ===== -->
+<div class="empty-state" *ngIf="!isSingleSession() && !isLoading() && photoCount() === 0 && !errorMessage()">
   <div class="empty-icon-wrapper">
     <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
       <rect x="8" y="12" width="48" height="40" rx="4" />

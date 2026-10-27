@@ -48,6 +48,7 @@ export class EventGallery implements OnInit, OnDestroy {
   isZippingSession = signal<boolean>(false);
   zipSessionProgress = signal<string>('');
   isDownloading = signal<boolean>(false);
+  isRefreshing = signal<boolean>(false);
 
   // ===== COMPUTED =====
   selectedPhoto = computed(() => this.photos()[this.selectedIndex()]);
@@ -127,11 +128,18 @@ export class EventGallery implements OnInit, OnDestroy {
   private pollIntervalMs = 5000;
   private readonly POLL_BASE_MS = 5000;
   private readonly POLL_MAX_MS = 30000;
+  private readonly SESSION_POLL_INTERVAL_MS = 2500;
   private readonly AUTO_STOP_MS = 5 * 60 * 1000;
+  private readonly SESSION_AUTO_STOP_MS = 3 * 60 * 1000;
   private isSessionGallery = false;
   private readonly visibilityHandler = () => {
-    if (document.hidden) this.stopPolling();
-    else if (this.eventId && !this.errorMessage() && this.galleryStatus() === 'PENDING') this.startPolling();
+    if (document.hidden) {
+      this.stopPolling();
+    } else if (this.eventId && !this.errorMessage()) {
+      if (this.isSessionGallery || this.galleryStatus() === 'PENDING') {
+        this.startPolling();
+      }
+    }
   };
 
   // ===== LRU CACHE (giữ tối đa 20 ảnh gần nhất trong RAM) =====
@@ -278,7 +286,11 @@ export class EventGallery implements OnInit, OnDestroy {
         this.photos.set(this.sortPhotos(photos));
         photos.forEach(p => this.knownMediaIds.add(p.mediaId));
         this.isLoading.set(false);
-        if (result.status === 'PENDING') {
+        if (this.isSessionGallery) {
+          // Luồng phiên chụp: Luôn bật polling tự động để đón các ảnh chụp (shots) và video hậu trường (bts) đang tải lên
+          this.pollIntervalMs = this.SESSION_POLL_INTERVAL_MS;
+          this.startPolling();
+        } else if (result.status === 'PENDING') {
           this.pollIntervalMs = result.pollAfterMs || this.POLL_BASE_MS;
           this.startPolling();
         } else {
@@ -296,10 +308,13 @@ export class EventGallery implements OnInit, OnDestroy {
   // ========== POLLING (Exponential Backoff) ==========
 
   private startPolling() {
-    if (this.pollTimeoutId || !this.eventId || this.errorMessage() || this.galleryStatus() !== 'PENDING') return;
+    if (this.pollTimeoutId || !this.eventId || this.errorMessage()) return;
+    if (!this.isSessionGallery && this.galleryStatus() !== 'PENDING') return;
     this.isPolling.set(true);
     this.noNewPhotosSince = Date.now();
-    this.pollIntervalMs = Math.max(this.POLL_BASE_MS, Math.min(this.pollIntervalMs, this.POLL_MAX_MS));
+    this.pollIntervalMs = this.isSessionGallery
+      ? this.SESSION_POLL_INTERVAL_MS
+      : Math.max(this.POLL_BASE_MS, Math.min(this.pollIntervalMs, this.POLL_MAX_MS));
     this.schedulePollTick();
   }
 
@@ -332,40 +347,83 @@ export class EventGallery implements OnInit, OnDestroy {
         if (newFiles.length > 0) {
           newFiles.forEach(f => { f.isNew = true; this.knownMediaIds.add(f.mediaId); });
           const selectedMediaId = this.selectedPhoto()?.mediaId;
+          const wasEmpty = this.photos().length === 0;
           const merged = this.sortPhotos([...this.photos(), ...newFiles]);
           this.photos.set(merged);
-          if (selectedMediaId) {
+
+          if (wasEmpty) {
+            this.selectedIndex.set(0);
+          } else if (selectedMediaId) {
             const nextIndex = merged.findIndex(photo => photo.mediaId === selectedMediaId);
             if (nextIndex >= 0) this.selectedIndex.set(nextIndex);
           }
           this.noNewPhotosSince = Date.now();
-          this.pollIntervalMs = this.POLL_BASE_MS; // Reset → poll nhanh lại
+          this.pollIntervalMs = this.isSessionGallery ? this.SESSION_POLL_INTERVAL_MS : this.POLL_BASE_MS;
 
           setTimeout(() => {
             this.photos.update(current => current.map(p => ({ ...p, isNew: false })));
           }, 5000);
         } else {
-          // Exponential backoff: ×1.5 mỗi lần không có ảnh mới (5s → 7.5s → 11s → ... → max 30s)
-          this.pollIntervalMs = Math.min(Math.round(this.pollIntervalMs * 1.5), this.POLL_MAX_MS);
+          if (this.isSessionGallery) {
+            // Trong luồng phiên chụp: nếu chưa có ảnh nào -> giữ chu kỳ 2.5s để đón ảnh ngay khi upload xong
+            // Nếu đã có ảnh -> sau 30s không có ảnh mới thì giãn dần chu kỳ (tối đa 8s)
+            if (this.photos().length === 0) {
+              this.pollIntervalMs = this.SESSION_POLL_INTERVAL_MS;
+            } else if (Date.now() - this.noNewPhotosSince > 30000) {
+              this.pollIntervalMs = Math.min(Math.round(this.pollIntervalMs * 1.3), 8000);
+            }
+          } else {
+            this.pollIntervalMs = Math.min(Math.round(this.pollIntervalMs * 1.5), this.POLL_MAX_MS);
+          }
         }
 
-        if (result.status === 'READY' && this.isSessionGallery) {
+        const autoStopLimit = this.isSessionGallery ? this.SESSION_AUTO_STOP_MS : this.AUTO_STOP_MS;
+        if (Date.now() - this.noNewPhotosSince > autoStopLimit) {
           this.stopPolling();
           return;
         }
 
-        if (result.pollAfterMs) {
-          this.pollIntervalMs = Math.max(this.pollIntervalMs, result.pollAfterMs);
+        if (this.isPolling()) {
+          this.schedulePollTick();
         }
-        if (Date.now() - this.noNewPhotosSince > this.AUTO_STOP_MS) {
-          this.stopPolling();
-          return;
-        }
-        this.schedulePollTick();
       },
       error: (err) => {
-        this.errorMessage.set(this.describeGalleryError(err));
+        if (this.photos().length === 0) {
+          this.errorMessage.set(this.describeGalleryError(err));
+        }
         this.stopPolling();
+      }
+    });
+  }
+
+  refreshNow() {
+    if (this.isRefreshing() || !this.eventId) return;
+    this.isRefreshing.set(true);
+    this.driveService.listPhotosInFolder(this.eventId).subscribe({
+      next: (result) => {
+        const files = result.photos;
+        this.galleryStatus.set(result.status);
+        if (result.sessions && result.sessions.length > 0) {
+          this.sessions.set(result.sessions);
+        }
+        const newFiles = files.filter(f => !this.knownMediaIds.has(f.mediaId));
+        if (newFiles.length > 0) {
+          newFiles.forEach(f => { f.isNew = true; this.knownMediaIds.add(f.mediaId); });
+          const wasEmpty = this.photos().length === 0;
+          const merged = this.sortPhotos([...this.photos(), ...newFiles]);
+          this.photos.set(merged);
+          if (wasEmpty) this.selectedIndex.set(0);
+          this.noNewPhotosSince = Date.now();
+        } else if (this.photos().length === 0 && files.length > 0) {
+          this.photos.set(this.sortPhotos(files));
+          files.forEach(f => this.knownMediaIds.add(f.mediaId));
+          this.selectedIndex.set(0);
+        }
+        this.isRefreshing.set(false);
+        this.startPolling();
+      },
+      error: () => {
+        this.isRefreshing.set(false);
       }
     });
   }

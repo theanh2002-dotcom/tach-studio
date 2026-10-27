@@ -103,10 +103,19 @@ export class GoogleDriveGalleryService {
   listPhotosInFolder(publicGalleryId: string, cursor: string | null = null): Observable<GalleryLoadResult> {
     let params = new HttpParams().set('id', publicGalleryId);
     if (this.legacyQueryValue) params = params.set('m', this.legacyQueryValue);
-    if (this.sessionPublicId) params = params.set('s', this.sessionPublicId);
+    if (this.sessionPublicId) {
+      params = params.set('s', this.sessionPublicId);
+      params = params.set('_t', Date.now().toString());
+    }
     if (cursor) params = params.set('cursor', cursor);
 
-    return this.http.get<PublicGalleryResponse | PublicGalleryMedia[]>('/api/gallery', { params }).pipe(
+    return this.http.get<PublicGalleryResponse | PublicGalleryMedia[]>('/api/gallery', {
+      params,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    }).pipe(
       map(response => {
         const items = Array.isArray(response) ? response : (response?.items || []);
         const rawSessions = Array.isArray(response) ? [] : (response?.sessions || []);
