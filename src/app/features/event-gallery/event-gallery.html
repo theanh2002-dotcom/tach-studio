@@ -44,7 +44,11 @@
 
     <!-- MAIN PHOTO VIEWER (Chế độ xem trình chiếu ảnh lớn) -->
     <div class="gallery-main-photo" *ngIf="photoCount() > 0 && viewMode() === 'slideshow'"
-         (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEndMain($event)">
+         [class.gallery-main-photo--zoomed]="mainScale() > 1.05"
+         (touchstart)="onMainTouchStart($event)"
+         (touchmove)="onMainTouchMove($event)"
+         (touchend)="onMainTouchEnd($event)"
+         (wheel)="onMainWheel($event)">
       <div class="main-photo-container" [class.main-photo-container--strip]="isStripSelected()">
         <!-- Photo Role Badge (Góc trên bên trái) -->
         <div class="photo-role-badge" *ngIf="selectedPhoto() as current">
@@ -118,16 +122,24 @@
                 <img [src]="getSessionPhotoSrc(item.photo)"
                      class="main-photo-img"
                      [class.main-photo-img--loaded]="loadedImages().has(item.photo.mediaId)"
+                     [class.main-photo-img--transitioning]="mainIsTransitioning()"
+                     [style.transform]="item.originalIndex === selectedIndex() ? getMainTransform() : 'none'"
                      [alt]="item.photo.name"
                      fetchpriority="high"
                      referrerpolicy="no-referrer"
                      (load)="onImageLoad(item.photo.mediaId)"
-                     (click)="openLightbox(item.originalIndex)"
+                     (click)="onMainPhotoClick(item.originalIndex)"
                      (error)="onMainError(item.photo)" />
               </ng-template>
             </div>
           </ng-container>
         </div>
+
+        <!-- Zoom Reset Badge for Main Photo -->
+        <button type="button" class="main-photo-zoom-badge" *ngIf="mainScale() > 1.05" (click)="$event.stopPropagation(); resetMainZoom()" title="Chạm để thu nhỏ">
+          <span>{{ Math.round(mainScale() * 10) / 10 }}x</span>
+          <span class="zoom-reset-hint">• Chạm để đặt lại</span>
+        </button>
 
         <!-- Action Buttons -->
         <div class="main-photo-actions">
@@ -423,8 +435,12 @@
 </div>
 
 <!-- ===== FULLSCREEN LIGHTBOX / SESSION VIEWER ===== -->
-<div class="lightbox" *ngIf="showLightbox()" (click)="closeLightbox()" (touchstart)="onTouchStart($event)"
-  (touchmove)="onTouchMove($event)" (touchend)="onTouchEnd($event)">
+<div class="lightbox" *ngIf="showLightbox()"
+     (click)="onLightboxBackdropClick($event)"
+     (touchstart)="onLbTouchStart($event)"
+     (touchmove)="onLbTouchMove($event)"
+     (touchend)="onLbTouchEnd($event)"
+     (wheel)="onLbWheel($event)">
   <div class="lightbox-backdrop"></div>
 
   <!-- Close Button -->
@@ -434,6 +450,25 @@
       <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   </button>
+
+  <!-- Lightbox Zoom Indicator / Reset Button -->
+  <button type="button" class="lightbox-zoom-badge" *ngIf="lbScale() > 1.05" (click)="$event.stopPropagation(); resetLightboxZoom()" title="Chạm để trở về 100%">
+    <span class="zoom-val">{{ Math.round(lbScale() * 10) / 10 }}x</span>
+    <span class="zoom-txt">• Chạm để đặt lại</span>
+  </button>
+
+  <!-- Lightbox Zoom Controls -->
+  <div class="lightbox-zoom-controls" *ngIf="!isVideo(currentLightboxMedia())" (click)="$event.stopPropagation()">
+    <button type="button" class="lb-zoom-btn" (click)="zoomLightboxStep(-0.5)" [disabled]="lbScale() <= 1.05" title="Thu nhỏ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button type="button" class="lb-zoom-btn lb-zoom-btn--reset" (click)="toggleLightboxZoom()" title="Nhấn đúp hoặc chạm để phóng to/thu nhỏ">
+      {{ lbScale() > 1.05 ? (Math.round(lbScale() * 10) / 10) + 'x' : '1x' }}
+    </button>
+    <button type="button" class="lb-zoom-btn" (click)="zoomLightboxStep(0.5)" [disabled]="lbScale() >= 4" title="Phóng to">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
 
   <!-- Lightbox Counter / Title -->
   <div class="lightbox-counter">
@@ -461,6 +496,8 @@
         <img [src]="getLightboxSrc(media)"
              [alt]="media?.name || 'Ảnh sự kiện'"
              class="lightbox-img"
+             [class.lightbox-img--transitioning]="lbIsTransitioning()"
+             [style.transform]="getLightboxTransform()"
              fetchpriority="high"
              referrerpolicy="no-referrer"
              (error)="onMainError(media)" />

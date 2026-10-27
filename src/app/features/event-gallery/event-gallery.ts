@@ -22,6 +22,7 @@ export interface VisiblePhoto {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EventGallery implements OnInit, OnDestroy {
+  protected readonly Math = Math;
   eventId: string | null = '';
 
   // ===== STATE SIGNALS =====
@@ -427,6 +428,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   selectPhoto(index: number) {
+    this.resetMainZoom();
     this.selectedIndex.set(index);
     this.syncScrollAnimations(index);
   }
@@ -449,6 +451,7 @@ export class EventGallery implements OnInit, OnDestroy {
         this.prepareShareFile(photo);
       }
     }
+    this.resetLightboxZoom();
     this.showLightbox.set(true);
     document.body.style.overflow = 'hidden';
   }
@@ -461,6 +464,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   selectSessionMedia(index: number) {
+    this.resetLightboxZoom();
     this.activeSessionMediaIndex.set(index);
     const media = this.activeSessionMedia()[index];
     if (media) {
@@ -470,6 +474,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   closeLightbox() {
+    this.resetLightboxZoom();
     this.showLightbox.set(false);
     this.activeSession.set(null);
     this.activeSessionMediaIndex.set(0);
@@ -477,6 +482,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   lightboxPrev() {
+    this.resetLightboxZoom();
     const session = this.activeSession();
     if (session && session.allMedia && session.allMedia.length > 1) {
       const total = session.allMedia.length;
@@ -498,6 +504,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   lightboxNext() {
+    this.resetLightboxZoom();
     const session = this.activeSession();
     if (session && session.allMedia && session.allMedia.length > 1) {
       const total = session.allMedia.length;
@@ -619,6 +626,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   navigatePrev() {
+    this.resetMainZoom();
     const total = this.photoCount();
     this.selectedIndex.update(i => {
       const newIdx = (i - 1 + total) % total;
@@ -628,6 +636,7 @@ export class EventGallery implements OnInit, OnDestroy {
   }
 
   navigateNext() {
+    this.resetMainZoom();
     const total = this.photoCount();
     this.selectedIndex.update(i => {
       const newIdx = (i + 1) % total;
@@ -878,60 +887,446 @@ export class EventGallery implements OnInit, OnDestroy {
 
   // ========== SWIPE GESTURES ==========
 
-  private touchStartX = 0;
-  private touchStartTouchCount = 0;
-  private touchGestureCancelled = false;
+    // ========== LIGHTBOX ZOOM & PAN ENGINE ==========
+  lbScale = signal<number>(1);
+  lbTranslateX = signal<number>(0);
+  lbTranslateY = signal<number>(0);
+  lbIsTransitioning = signal<boolean>(false);
 
-  onTouchStart(event: TouchEvent) {
-    this.touchStartTouchCount = event.touches.length;
-    this.touchGestureCancelled = event.touches.length !== 1;
-    if (!this.touchGestureCancelled) {
-      this.touchStartX = event.touches[0].clientX;
+  private lbTouchStartX = 0;
+  private lbTouchStartY = 0;
+  private lbLastTouchX = 0;
+  private lbLastTouchY = 0;
+  private lbPinchStartDist = 0;
+  private lbPinchStartScale = 1;
+  private lbPinchStartTx = 0;
+  private lbPinchStartTy = 0;
+  private lbPinchMidX = 0;
+  private lbPinchMidY = 0;
+  private lbIsPinching = false;
+  private lbIsPanning = false;
+  private lbMovedDist = 0;
+  private lbLastTapTime = 0;
+  private lbSuppressBackdropClick = false;
+
+  getLightboxTransform(): string {
+    return `translate3d(${this.lbTranslateX()}px, ${this.lbTranslateY()}px, 0) scale(${this.lbScale()})`;
+  }
+
+  onLbTouchStart(event: TouchEvent) {
+    const touches = event.touches;
+    this.lbMovedDist = 0;
+
+    if (touches.length === 2) {
+      this.lbIsPinching = true;
+      this.lbIsPanning = false;
+      this.lbIsTransitioning.set(false);
+      this.lbPinchStartDist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      this.lbPinchStartScale = this.lbScale();
+      this.lbPinchStartTx = this.lbTranslateX();
+      this.lbPinchStartTy = this.lbTranslateY();
+      this.lbPinchMidX = (touches[0].clientX + touches[1].clientX) / 2;
+      this.lbPinchMidY = (touches[0].clientY + touches[1].clientY) / 2;
+    } else if (touches.length === 1) {
+      this.lbTouchStartX = touches[0].clientX;
+      this.lbTouchStartY = touches[0].clientY;
+      this.lbLastTouchX = touches[0].clientX;
+      this.lbLastTouchY = touches[0].clientY;
+
+      if (this.lbScale() > 1.05) {
+        this.lbIsPanning = true;
+        this.lbIsTransitioning.set(false);
+      } else {
+        this.lbIsPanning = false;
+      }
     }
   }
 
-  onTouchMove(event: TouchEvent) {
-    // A second finger means pinch/viewport zoom, never a gallery swipe.
-    if (event.touches.length !== 1) {
-      this.touchGestureCancelled = true;
+  onLbTouchMove(event: TouchEvent) {
+    const touches = event.touches;
+
+    if (this.lbIsPinching && touches.length === 2) {
+      if (event.cancelable) event.preventDefault();
+      const currentDist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      if (this.lbPinchStartDist > 0) {
+        const ratio = currentDist / this.lbPinchStartDist;
+        const newScale = Math.min(Math.max(this.lbPinchStartScale * ratio, 0.8), 5);
+        this.lbScale.set(newScale);
+
+        const currentMidX = (touches[0].clientX + touches[1].clientX) / 2;
+        const currentMidY = (touches[0].clientY + touches[1].clientY) / 2;
+        const dMidX = currentMidX - this.lbPinchMidX;
+        const dMidY = currentMidY - this.lbPinchMidY;
+        this.lbTranslateX.set(this.lbPinchStartTx + dMidX);
+        this.lbTranslateY.set(this.lbPinchStartTy + dMidY);
+        this.lbMovedDist += 10;
+      }
+    } else if (touches.length === 1) {
+      const dx = touches[0].clientX - this.lbLastTouchX;
+      const dy = touches[0].clientY - this.lbLastTouchY;
+      this.lbLastTouchX = touches[0].clientX;
+      this.lbLastTouchY = touches[0].clientY;
+      this.lbMovedDist += Math.hypot(dx, dy);
+
+      if (this.lbScale() > 1.05) {
+        if (event.cancelable) event.preventDefault();
+        const curScale = this.lbScale();
+        const maxTx = Math.max(0, (curScale - 1) * (window.innerWidth * 0.5));
+        const maxTy = Math.max(0, (curScale - 1) * (window.innerHeight * 0.45));
+
+        const nextTx = Math.min(Math.max(this.lbTranslateX() + dx, -maxTx), maxTx);
+        const nextTy = Math.min(Math.max(this.lbTranslateY() + dy, -maxTy), maxTy);
+
+        this.lbTranslateX.set(nextTx);
+        this.lbTranslateY.set(nextTy);
+      }
     }
   }
 
-  onTouchEnd(event: TouchEvent) {
-    if (this.touchGestureCancelled || this.touchStartTouchCount !== 1 || event.changedTouches.length !== 1) {
-      this.resetTouchGesture();
+  onLbTouchEnd(event: TouchEvent) {
+    if (this.lbIsPinching) {
+      this.lbIsPinching = false;
+      this.lbIsTransitioning.set(true);
+      this.lbSuppressBackdropClick = true;
+      setTimeout(() => { this.lbSuppressBackdropClick = false; }, 300);
+
+      if (this.lbScale() < 1.05) {
+        this.resetLightboxZoom();
+      } else {
+        const clampedScale = Math.min(Math.max(this.lbScale(), 1), 4);
+        this.lbScale.set(clampedScale);
+        this.clampLightboxTranslate(clampedScale);
+      }
       return;
     }
 
-    const diff = this.touchStartX - event.changedTouches[0].clientX;
-    this.resetTouchGesture();
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) this.lightboxNext();
-      else this.lightboxPrev();
-    }
-  }
-
-  onTouchEndMain(event: TouchEvent) {
-    if (this.touchGestureCancelled || this.touchStartTouchCount !== 1 || event.changedTouches.length !== 1) {
-      this.resetTouchGesture();
+    if (this.lbIsPanning) {
+      this.lbIsPanning = false;
+      this.lbIsTransitioning.set(true);
+      this.lbSuppressBackdropClick = true;
+      setTimeout(() => { this.lbSuppressBackdropClick = false; }, 300);
+      this.clampLightboxTranslate(this.lbScale());
       return;
     }
 
-    const diff = this.touchStartX - event.changedTouches[0].clientX;
-    this.resetTouchGesture();
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) this.navigateNext();
-      else this.navigatePrev();
+    if (this.lbScale() <= 1.05) {
+      const now = Date.now();
+      const changeTouch = event.changedTouches[0];
+      const tapDist = changeTouch
+        ? Math.hypot(changeTouch.clientX - this.lbTouchStartX, changeTouch.clientY - this.lbTouchStartY)
+        : 999;
+
+      if (tapDist < 20 && now - this.lbLastTapTime < 320) {
+        // DOUBLE TAP TO ZOOM!
+        this.lbLastTapTime = 0;
+        this.toggleLightboxZoomAtPoint(
+          changeTouch ? changeTouch.clientX : window.innerWidth / 2,
+          changeTouch ? changeTouch.clientY : window.innerHeight / 2
+        );
+        return;
+      }
+
+      this.lbLastTapTime = now;
+
+      // Horizontal swipe navigation
+      if (changeTouch && Math.abs(this.lbTouchStartX - changeTouch.clientX) > 50) {
+        const diff = this.lbTouchStartX - changeTouch.clientX;
+        if (diff > 0) {
+          this.lightboxNext();
+        } else {
+          this.lightboxPrev();
+        }
+      }
     }
   }
 
-  private resetTouchGesture() {
-    this.touchStartX = 0;
-    this.touchStartTouchCount = 0;
-    this.touchGestureCancelled = false;
+  clampLightboxTranslate(scale: number) {
+    if (scale <= 1.05) {
+      this.lbTranslateX.set(0);
+      this.lbTranslateY.set(0);
+      return;
+    }
+    const maxTx = (scale - 1) * (window.innerWidth * 0.48);
+    const maxTy = (scale - 1) * (window.innerHeight * 0.45);
+    this.lbTranslateX.set(Math.min(Math.max(this.lbTranslateX(), -maxTx), maxTx));
+    this.lbTranslateY.set(Math.min(Math.max(this.lbTranslateY(), -maxTy), maxTy));
   }
 
-  // ========== IMAGE URL HELPERS ==========
+  toggleLightboxZoomAtPoint(clientX: number, clientY: number) {
+    this.lbIsTransitioning.set(true);
+    if (this.lbScale() > 1.2) {
+      this.resetLightboxZoom();
+    } else {
+      const targetScale = 2.5;
+      const offsetX = clientX - window.innerWidth / 2;
+      const offsetY = clientY - window.innerHeight / 2;
+      const maxTx = (targetScale - 1) * (window.innerWidth * 0.45);
+      const maxTy = (targetScale - 1) * (window.innerHeight * 0.4);
+
+      const targetTx = Math.min(Math.max(-offsetX * (targetScale - 1) * 0.65, -maxTx), maxTx);
+      const targetTy = Math.min(Math.max(-offsetY * (targetScale - 1) * 0.65, -maxTy), maxTy);
+
+      this.lbScale.set(targetScale);
+      this.lbTranslateX.set(targetTx);
+      this.lbTranslateY.set(targetTy);
+    }
+  }
+
+  zoomLightboxStep(delta: number) {
+    this.lbIsTransitioning.set(true);
+    const nextScale = Math.min(Math.max(this.lbScale() + delta, 1), 4);
+    if (nextScale <= 1.05) {
+      this.resetLightboxZoom();
+    } else {
+      this.lbScale.set(nextScale);
+      this.clampLightboxTranslate(nextScale);
+    }
+  }
+
+  toggleLightboxZoom() {
+    this.toggleLightboxZoomAtPoint(window.innerWidth / 2, window.innerHeight / 2);
+  }
+
+  resetLightboxZoom() {
+    this.lbIsTransitioning.set(true);
+    this.lbScale.set(1);
+    this.lbTranslateX.set(0);
+    this.lbTranslateY.set(0);
+  }
+
+  onLbWheel(event: WheelEvent) {
+    if (this.isVideo(this.currentLightboxMedia())) return;
+    if (event.cancelable) event.preventDefault();
+    this.lbIsTransitioning.set(false);
+    const delta = -Math.sign(event.deltaY) * 0.35;
+    const nextScale = Math.min(Math.max(this.lbScale() + delta, 1), 4);
+    if (nextScale <= 1.05) {
+      this.resetLightboxZoom();
+    } else {
+      this.lbScale.set(nextScale);
+      this.clampLightboxTranslate(nextScale);
+    }
+  }
+
+  onLightboxBackdropClick(event: MouseEvent) {
+    if (this.lbSuppressBackdropClick) return;
+    if (this.lbScale() > 1.05) {
+      this.resetLightboxZoom();
+      return;
+    }
+    this.closeLightbox();
+  }
+
+  // ========== MAIN HERO VIEWER ZOOM & GESTURES ==========
+  mainScale = signal<number>(1);
+  mainTranslateX = signal<number>(0);
+  mainTranslateY = signal<number>(0);
+  mainIsTransitioning = signal<boolean>(false);
+
+  private mainTouchStartX = 0;
+  private mainTouchStartY = 0;
+  private mainLastTouchX = 0;
+  private mainLastTouchY = 0;
+  private mainPinchStartDist = 0;
+  private mainPinchStartScale = 1;
+  private mainPinchStartTx = 0;
+  private mainPinchStartTy = 0;
+  private mainPinchMidX = 0;
+  private mainPinchMidY = 0;
+  private mainIsPinching = false;
+  private mainIsPanning = false;
+  mainMovedDist = 0;
+  private mainLastTapTime = 0;
+
+  getMainTransform(): string {
+    return `translate3d(${this.mainTranslateX()}px, ${this.mainTranslateY()}px, 0) scale(${this.mainScale()})`;
+  }
+
+  onMainTouchStart(event: TouchEvent) {
+    const touches = event.touches;
+    this.mainMovedDist = 0;
+
+    if (touches.length === 2) {
+      this.mainIsPinching = true;
+      this.mainIsPanning = false;
+      this.mainIsTransitioning.set(false);
+      this.mainPinchStartDist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      this.mainPinchStartScale = this.mainScale();
+      this.mainPinchStartTx = this.mainTranslateX();
+      this.mainPinchStartTy = this.mainTranslateY();
+      this.mainPinchMidX = (touches[0].clientX + touches[1].clientX) / 2;
+      this.mainPinchMidY = (touches[0].clientY + touches[1].clientY) / 2;
+    } else if (touches.length === 1) {
+      this.mainTouchStartX = touches[0].clientX;
+      this.mainTouchStartY = touches[0].clientY;
+      this.mainLastTouchX = touches[0].clientX;
+      this.mainLastTouchY = touches[0].clientY;
+
+      if (this.mainScale() > 1.05) {
+        this.mainIsPanning = true;
+        this.mainIsTransitioning.set(false);
+      } else {
+        this.mainIsPanning = false;
+      }
+    }
+  }
+
+  onMainTouchMove(event: TouchEvent) {
+    const touches = event.touches;
+
+    if (this.mainIsPinching && touches.length === 2) {
+      if (event.cancelable) event.preventDefault();
+      const currentDist = Math.hypot(
+        touches[0].clientX - touches[1].clientX,
+        touches[0].clientY - touches[1].clientY
+      );
+      if (this.mainPinchStartDist > 0) {
+        const ratio = currentDist / this.mainPinchStartDist;
+        const newScale = Math.min(Math.max(this.mainPinchStartScale * ratio, 0.8), 4.5);
+        this.mainScale.set(newScale);
+
+        const currentMidX = (touches[0].clientX + touches[1].clientX) / 2;
+        const currentMidY = (touches[0].clientY + touches[1].clientY) / 2;
+        const dMidX = currentMidX - this.mainPinchMidX;
+        const dMidY = currentMidY - this.mainPinchMidY;
+        this.mainTranslateX.set(this.mainPinchStartTx + dMidX);
+        this.mainTranslateY.set(this.mainPinchStartTy + dMidY);
+        this.mainMovedDist += 10;
+      }
+    } else if (touches.length === 1) {
+      const dx = touches[0].clientX - this.mainLastTouchX;
+      const dy = touches[0].clientY - this.mainLastTouchY;
+      this.mainLastTouchX = touches[0].clientX;
+      this.mainLastTouchY = touches[0].clientY;
+      this.mainMovedDist += Math.hypot(dx, dy);
+
+      if (this.mainScale() > 1.05) {
+        if (event.cancelable) event.preventDefault();
+        const curScale = this.mainScale();
+        const maxTx = Math.max(0, (curScale - 1) * (window.innerWidth * 0.45));
+        const maxTy = Math.max(0, (curScale - 1) * 350);
+
+        this.mainTranslateX.set(Math.min(Math.max(this.mainTranslateX() + dx, -maxTx), maxTx));
+        this.mainTranslateY.set(Math.min(Math.max(this.mainTranslateY() + dy, -maxTy), maxTy));
+      }
+    }
+  }
+
+  onMainTouchEnd(event: TouchEvent) {
+    if (this.mainIsPinching) {
+      this.mainIsPinching = false;
+      this.mainIsTransitioning.set(true);
+      if (this.mainScale() < 1.05) {
+        this.resetMainZoom();
+      } else {
+        const clampedScale = Math.min(Math.max(this.mainScale(), 1), 3.5);
+        this.mainScale.set(clampedScale);
+        this.clampMainTranslate(clampedScale);
+      }
+      return;
+    }
+
+    if (this.mainIsPanning) {
+      this.mainIsPanning = false;
+      this.mainIsTransitioning.set(true);
+      this.clampMainTranslate(this.mainScale());
+      return;
+    }
+
+    if (this.mainScale() <= 1.05) {
+      const now = Date.now();
+      const changeTouch = event.changedTouches[0];
+      const tapDist = changeTouch
+        ? Math.hypot(changeTouch.clientX - this.mainTouchStartX, changeTouch.clientY - this.mainTouchStartY)
+        : 999;
+
+      if (tapDist < 20 && now - this.mainLastTapTime < 320) {
+        // DOUBLE TAP ON MAIN PHOTO!
+        this.mainLastTapTime = 0;
+        this.toggleMainZoom();
+        return;
+      }
+      this.mainLastTapTime = now;
+
+      if (changeTouch && Math.abs(this.mainTouchStartX - changeTouch.clientX) > 50) {
+        const diff = this.mainTouchStartX - changeTouch.clientX;
+        if (diff > 0) this.navigateNext();
+        else this.navigatePrev();
+      }
+    }
+  }
+
+  toggleMainZoom() {
+    this.mainIsTransitioning.set(true);
+    if (this.mainScale() > 1.2) {
+      this.resetMainZoom();
+    } else {
+      this.mainScale.set(2.2);
+      this.mainTranslateX.set(0);
+      this.mainTranslateY.set(0);
+    }
+  }
+
+  clampMainTranslate(scale: number) {
+    if (scale <= 1.05) {
+      this.mainTranslateX.set(0);
+      this.mainTranslateY.set(0);
+      return;
+    }
+    const maxTx = (scale - 1) * (window.innerWidth * 0.45);
+    const maxTy = (scale - 1) * 350;
+    this.mainTranslateX.set(Math.min(Math.max(this.mainTranslateX(), -maxTx), maxTx));
+    this.mainTranslateY.set(Math.min(Math.max(this.mainTranslateY(), -maxTy), maxTy));
+  }
+
+  resetMainZoom() {
+    this.mainIsTransitioning.set(true);
+    this.mainScale.set(1);
+    this.mainTranslateX.set(0);
+    this.mainTranslateY.set(0);
+  }
+
+  onMainWheel(event: WheelEvent) {
+    if (this.isVideo(this.selectedPhoto())) return;
+    if (this.mainScale() > 1.05) {
+      if (event.cancelable) event.preventDefault();
+      this.mainIsTransitioning.set(false);
+      const delta = -Math.sign(event.deltaY) * 0.25;
+      const nextScale = Math.min(Math.max(this.mainScale() + delta, 1), 3.5);
+      if (nextScale <= 1.05) {
+        this.resetMainZoom();
+      } else {
+        this.mainScale.set(nextScale);
+        this.clampMainTranslate(nextScale);
+      }
+    }
+  }
+
+  onMainPhotoClick(index: number) {
+    if (this.mainMovedDist > 12) return;
+    if (this.mainScale() > 1.1) {
+      this.resetMainZoom();
+      return;
+    }
+    this.openLightbox(index);
+  }
+
+  // Compatibility aliases
+  onTouchStart(e: TouchEvent) { this.onLbTouchStart(e); }
+  onTouchMove(e: TouchEvent) { this.onLbTouchMove(e); }
+  onTouchEnd(e: TouchEvent) { this.onLbTouchEnd(e); }
+  onTouchEndMain(e: TouchEvent) { this.onMainTouchEnd(e); }
+
+// ========== IMAGE URL HELPERS ==========
 
   isVideo(photo: GalleryPhoto | null | undefined): boolean {
     return this.driveService.isVideo(photo);
