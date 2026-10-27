@@ -427,7 +427,7 @@
 </div>
 
 <!-- ===== WAITING STATE (Dành riêng cho luồng phiên chụp khi vừa quét QR xong) ===== -->
-<div class="session-waiting-state" *ngIf="isSingleSession() && !isLoading() && photoCount() === 0 && !errorMessage()">
+<div class="session-waiting-state" *ngIf="isSingleSession() && !isLoading() && photoCount() === 0 && !isSessionTimedOut() && !errorMessage()">
   <div class="waiting-card">
     <div class="waiting-icon-container">
       <div class="waiting-icon-halo"></div>
@@ -454,6 +454,33 @@
         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
       </svg>
       <span>{{ isRefreshing() ? 'Đang kiểm tra...' : 'Kiểm tra ảnh ngay' }}</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== TIMEOUT STATE (Khi chờ quá 3 phút mà máy kiosk chưa đẩy được ảnh nào) ===== -->
+<div class="session-waiting-state session-timeout-state" *ngIf="isSingleSession() && !isLoading() && photoCount() === 0 && isSessionTimedOut() && !errorMessage()">
+  <div class="waiting-card">
+    <div class="waiting-icon-container">
+      <div class="waiting-icon-box waiting-icon-box--timeout">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="waiting-icon">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+    </div>
+    <h2 class="waiting-title">Chưa nhận được ảnh từ buồng chụp</h2>
+    <p class="waiting-subtitle">
+      Đã quá thời gian chờ nhưng chưa có ảnh tải lên. Có thể đường truyền của máy chụp đang bị gián đoạn.<br />
+      Ảnh chụp vẫn được lưu an toàn tại máy quầy. Bạn có thể bấm thử lại hoặc nhờ nhân viên hỗ trợ!
+    </p>
+
+    <button type="button" class="waiting-refresh-btn" (click)="retrySessionSync()" [disabled]="isRefreshing()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="refresh-btn-icon" [class.spin-active]="isRefreshing()">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+      </svg>
+      <span>{{ isRefreshing() ? 'Đang kiểm tra...' : 'Thử tải lại ngay' }}</span>
     </button>
   </div>
 </div>

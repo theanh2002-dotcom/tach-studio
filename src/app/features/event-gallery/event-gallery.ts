@@ -31,6 +31,7 @@ export class EventGallery implements OnInit, OnDestroy {
   activeSession = signal<GallerySession | null>(null);
   activeSessionMediaIndex = signal<number>(0);
   isSingleSession = signal<boolean>(false);
+  isSessionTimedOut = signal<boolean>(false);
   selectedIndex = signal<number>(0);
   isLoading = signal<boolean>(true);
   isPolling = signal<boolean>(false);
@@ -252,6 +253,7 @@ export class EventGallery implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.knownMediaIds.clear();
+    this.isSessionTimedOut.set(false);
 
     if (this.eventId && this.eventId.startsWith('demo')) {
       setTimeout(() => {
@@ -380,6 +382,9 @@ export class EventGallery implements OnInit, OnDestroy {
         const autoStopLimit = this.isSessionGallery ? this.SESSION_AUTO_STOP_MS : this.AUTO_STOP_MS;
         if (Date.now() - this.noNewPhotosSince > autoStopLimit) {
           this.stopPolling();
+          if (this.photos().length === 0) {
+            this.isSessionTimedOut.set(true);
+          }
           return;
         }
 
@@ -396,8 +401,15 @@ export class EventGallery implements OnInit, OnDestroy {
     });
   }
 
+  retrySessionSync() {
+    this.isSessionTimedOut.set(false);
+    this.noNewPhotosSince = Date.now();
+    this.loadInitialPhotos();
+  }
+
   refreshNow() {
     if (this.isRefreshing() || !this.eventId) return;
+    this.isSessionTimedOut.set(false);
     this.isRefreshing.set(true);
     this.driveService.listPhotosInFolder(this.eventId).subscribe({
       next: (result) => {

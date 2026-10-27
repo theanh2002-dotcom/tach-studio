@@ -87,12 +87,28 @@ export default async function handler(req, res) {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
 
+      let sessionTimestamp = 0;
+      if (sessionPublicId && sessionPublicId.startsWith('ses_')) {
+        try {
+          const hex = sessionPublicId.slice(4, 16);
+          sessionTimestamp = parseInt(hex, 16);
+        } catch {
+          sessionTimestamp = 0;
+        }
+      }
+      const sessionAgeMs = sessionTimestamp > 0 ? (Date.now() - sessionTimestamp) : 0;
+      const lastFileTime = media.length > 0 ? Math.max(...media.map(m => Date.parse(m.createdAt || '') || 0)) : 0;
+      const fileAgeMs = lastFileTime > 0 ? (Date.now() - lastFileTime) : 0;
+      // Phiên chụp được coi là kết thúc (hết chờ upload) nếu chụp đã quá 3.5 phút hoặc file cuối cùng đến đã hơn 3.5 phút
+      const isSessionTimedOut = (sessionAgeMs > 3.5 * 60 * 1000) || (fileAgeMs > 3.5 * 60 * 1000);
+
       const hasFinal = media.some(m => m.role === 'final');
       const hasShots = media.some(m => m.role === 'shot');
       const hasVideo = media.some(m => m.kind === 'video');
 
       // Phiên chụp hoàn tất khi đã có đủ ảnh in + ảnh chụp + video (hoặc từ 4 file trở lên)
-      const isComplete = media.length >= 4 || (hasFinal && hasShots && (hasVideo || media.length >= 3));
+      // HOẶC nếu đã quá thời gian timeout (3.5 phút) mà Kiosk đã đẩy được ít nhất 1 ảnh (coi như Kiosk đã xong phiên)
+      const isComplete = media.length >= 4 || (hasFinal && hasShots && (hasVideo || media.length >= 3)) || (isSessionTimedOut && media.length > 0);
       const status = media.length === 0 ? 'PENDING' : (isComplete ? 'READY' : 'PENDING');
 
       res.status(200).json({
@@ -102,7 +118,7 @@ export default async function handler(req, res) {
         session: sessionPublicId || null,
         sessions,
         items: media,
-        pollAfterMs: 2500,
+        pollAfterMs: status === 'READY' ? null : 2500,
         nextCursor: source.nextCursor || null
       });
       return;

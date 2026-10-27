@@ -1044,6 +1044,11 @@ $radius-sm: 10px;
   animation: waiting-halo-pulse 2s ease-in-out infinite;
 }
 
+
+.waiting-icon-box--timeout {
+  background: linear-gradient(135deg, #451a03, #78350f);
+  color: #f59e0b;
+}
 .waiting-icon-box {
   width: 76px;
   height: 76px;
