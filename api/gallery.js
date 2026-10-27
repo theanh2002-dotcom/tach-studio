@@ -493,7 +493,7 @@ function escapeRegExp(value) {
 
 function isCanonicalSessionMedia(name, sessionPublicId) {
   const prefix = escapeRegExp(`SB_${sessionPublicId}_`);
-  return new RegExp(`^${prefix}(?:final|shot_[1-9][0-9]*|bts)\\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$`, 'i').test(String(name || ''));
+  return new RegExp(`^${prefix}(?:final|shot_[1-9][0-9]*|bts|animated)\\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$`, 'i').test(String(name || ''));
 }
 
 function isCanonicalEventFinal(name) {
