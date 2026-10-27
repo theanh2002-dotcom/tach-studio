@@ -205,7 +205,7 @@ export class EventGallery implements OnInit, OnDestroy {
         (idx + 1) % total
       ];
       for (const i of targets) {
-        this.preloadSingle(all[i]);
+        this.preloadSingle(all[i], this.isSingleSession() ? 2560 : 1080);
       }
 
       this.prepareShareFile(all[idx]);
@@ -986,10 +986,18 @@ export class EventGallery implements OnInit, OnDestroy {
     return src.includes('#') ? src : `${src}#t=0.001`;
   }
 
+  /** Ảnh chất lượng cao nhất cho luồng xem theo phiên (2560px / Gốc HD) */
+  getSessionPhotoSrc(photo: GalleryPhoto | null | undefined): string {
+    if (!photo) return '';
+    if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
+    return this.getLightboxSrc(photo);
+  }
+
   /** Grid preview: 2560px ảnh gốc sắc nét, video fallback SVG nếu render thẻ img */
   getPreviewSrc(photo: GalleryPhoto): string {
     if (!photo) return '';
     if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
+    if (this.isSingleSession()) return this.getLightboxSrc(photo);
     return photo.thumbnailUrl || this.getLightboxSrc(photo);
   }
 
@@ -1032,13 +1040,13 @@ export class EventGallery implements OnInit, OnDestroy {
    * Preload 1 ảnh vào LRU Cache + gọi decode() trước để 0 jank khi chuyển ảnh.
    * Cache giữ tối đa MAX_CACHE ảnh, evict ảnh cũ nhất khi đầy.
    */
-  private preloadSingle(photo: GalleryPhoto, size: number = 1080) {
+  private preloadSingle(photo: GalleryPhoto, size: number = 2560) {
     // Video playback is intentionally user initiated. Preloading it as an
     // Image would request a poster/HTML response and waste bandwidth.
     if (!photo || this.isVideo(photo)) return;
-    const url = size <= 1080
-      ? this.getPhotoSrc(photo)
-      : this.driveService.getHighResUrl(photo, size);
+    const url = (this.isSingleSession() || size >= 2160)
+      ? this.getLightboxSrc(photo)
+      : (size <= 1080 ? this.getPhotoSrc(photo) : this.driveService.getHighResUrl(photo, size));
     if (!url) return;
 
     // LRU touch: di chuyển về cuối Map nếu đã có

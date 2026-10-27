@@ -46,9 +46,32 @@
     <div class="gallery-main-photo" *ngIf="photoCount() > 0 && viewMode() === 'slideshow'"
          (touchstart)="onTouchStart($event)" (touchmove)="onTouchMove($event)" (touchend)="onTouchEndMain($event)">
       <div class="main-photo-container" [class.main-photo-container--strip]="isStripSelected()">
-        <!-- Counter badge -->
+        <!-- Photo Role Badge (Góc trên bên trái) -->
+        <div class="photo-role-badge" *ngIf="selectedPhoto() as current">
+          <span class="role-pill role-pill--final" *ngIf="current.role === 'final'">
+            <svg class="role-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+            </svg>
+            Ảnh in hoàn thiện
+          </span>
+          <span class="role-pill role-pill--shot" *ngIf="current.role === 'shot'">
+            <svg class="role-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+            </svg>
+            Ảnh chụp {{ current.slotIndex ? '#' + current.slotIndex : '' }}
+          </span>
+          <span class="role-pill role-pill--video" *ngIf="isVideo(current)">
+            <svg class="role-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+            </svg>
+            Video hậu trường
+          </span>
+          <span class="quality-hd-pill" *ngIf="!isVideo(current)">HD GỐC</span>
+        </div>
+
+        <!-- Counter badge (Góc trên bên phải) -->
         <div class="photo-counter">
-          {{ selectedIndex() + 1 }}/{{ photoCount() }}
+          {{ selectedIndex() + 1 }} / {{ photoCount() }}
         </div>
 
         <!-- Nav arrows -->
@@ -91,8 +114,8 @@
                      [alt]="''"
                      referrerpolicy="no-referrer" />
 
-                <!-- Main photo 2560px -->
-                <img [src]="getPreviewSrc(item.photo)"
+                <!-- Main photo 2560px HD Original -->
+                <img [src]="getSessionPhotoSrc(item.photo)"
                      class="main-photo-img"
                      [class.main-photo-img--loaded]="loadedImages().has(item.photo.mediaId)"
                      [alt]="item.photo.name"
@@ -141,7 +164,7 @@
                  class="grid-video-preview"></video>
         </ng-container>
         <ng-template #gridImg>
-          <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
+          <img [src]="getSessionPhotoSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
         </ng-template>
         <span class="video-badge" *ngIf="isVideo(photo)">▶ VIDEO</span>
         
@@ -171,6 +194,8 @@
             <ng-template #stripImg>
               <img [src]="getPreviewSrc(photo)" [alt]="photo.name" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
             </ng-template>
+            <span class="thumb-role-tag" *ngIf="photo.role === 'final'">IN</span>
+            <span class="thumb-role-tag" *ngIf="photo.role === 'shot'">#{{ photo.slotIndex || (i) }}</span>
             <span class="video-badge video-badge--small" *ngIf="isVideo(photo)">▶</span>
             <span class="new-badge" *ngIf="photo.isNew">Mới</span>
           </div>
@@ -186,7 +211,7 @@
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          {{ isDownloading() ? 'Đang tải...' : (isVideo(selectedPhoto()) ? 'Tải video này' : 'Tải ảnh này') }}
+          {{ isDownloading() ? 'Đang tải...' : (isVideo(selectedPhoto()) ? 'Tải video này' : 'Tải ảnh này (Gốc HD)') }}
         </button>
 
         <button class="download-all-btn" [disabled]="isZippingSession() || isDownloading()" (click)="downloadActiveSession()" *ngIf="photoCount() > 1" title="Lưu trọn bộ ảnh vào máy">
@@ -195,7 +220,7 @@
             stroke-linejoin="round">
             <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
-          {{ isZippingSession() ? (zipSessionProgress() || 'Đang xử lý...') : (isMobileDevice() ? ('Lưu trọn bộ (' + photoCount() + ')') : ('Tải trọn bộ (' + photoCount() + ')')) }}
+          {{ isZippingSession() ? (zipSessionProgress() || 'Đang xử lý...') : (isMobileDevice() ? ('Lưu trọn bộ (' + photoCount() + ' file)') : ('Tải trọn bộ (' + photoCount() + ' file)')) }}
         </button>
       </div>
     </div>
