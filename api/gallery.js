@@ -302,11 +302,11 @@ function normalizeManifest(manifest) {
 }
 
 function parseSessionMediaName(name) {
-  const match = /^SB_(ses_[0-9a-zA-Z_-]{8,64})_(final|shot_([1-9][0-9]*)|bts|animated)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
+  const match = /^SB_(ses_[0-9a-zA-Z_-]{8,64})_(final|shot_([1-9][0-9]*)|bts|animated|video)\.(jpe?g|png|webp|mp4|m4v|webm|mov)$/i.exec(String(name || ''));
   if (!match) return null;
   const sessionId = match[1];
   const roleType = match[2].toLowerCase();
-  const role = roleType === 'animated' ? 'bts' : (roleType.startsWith('shot_') ? 'shot' : roleType);
+  const role = (roleType === 'animated' || roleType === 'video') ? 'bts' : (roleType.startsWith('shot_') ? 'shot' : roleType);
   const slotIndex = match[3] ? parseInt(match[3], 10) : null;
 
   let timestamp = 0;
@@ -509,7 +509,7 @@ function escapeRegExp(value) {
 
 function isCanonicalSessionMedia(name, sessionPublicId) {
   const prefix = escapeRegExp(`SB_${sessionPublicId}_`);
-  return new RegExp(`^${prefix}(?:final|shot_[1-9][0-9]*|bts|animated)\\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$`, 'i').test(String(name || ''));
+  return new RegExp(`^${prefix}(?:final|shot_[1-9][0-9]*|bts|animated|video)\\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$`, 'i').test(String(name || ''));
 }
 
 function isCanonicalEventFinal(name) {
@@ -517,7 +517,7 @@ function isCanonicalEventFinal(name) {
 }
 
 function isCanonicalEventMedia(name) {
-  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_(?:final|shot_[1-9][0-9]*|bts|animated)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
+  return /^SB_ses_[0-9a-zA-Z_-]{8,64}_(?:final|shot_[1-9][0-9]*|bts|animated|video)\.(?:jpe?g|png|webp|mp4|m4v|webm|mov)$/i.test(String(name || ''));
 }
 
 function setCors(req, res) {
