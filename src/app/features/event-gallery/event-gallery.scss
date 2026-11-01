@@ -237,8 +237,8 @@ $radius-sm: 10px;
   margin: 0 auto;
   border-radius: 20px;
   overflow: hidden;
-  background: radial-gradient(ellipse at center, #1c1924 0%, #0d0c10 100%);
-  box-shadow: 0 24px 60px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 35px rgba(200, 153, 101, 0.12);
+  background: #0d0c10;
+  box-shadow: 0 16px 48px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
@@ -272,13 +272,10 @@ $radius-sm: 10px;
   display: block;
   object-fit: contain;
   cursor: zoom-in;
-  transition: opacity 0.28s ease-out;
-  will-change: opacity, transform;
-  opacity: 0;
+  will-change: transform;
+  opacity: 1;
   z-index: 2;
-  filter: contrast(1.025);
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
   transform: translateZ(0);
   backface-visibility: hidden;
 
@@ -307,16 +304,7 @@ $radius-sm: 10px;
 }
 
 .blur-background {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  filter: blur(36px);
-  transform: scale(1.15);
-  opacity: 0.38;
-  z-index: 1;
+  display: none !important;
 }
 
 .photo-role-badge {
@@ -548,7 +536,6 @@ $radius-sm: 10px;
     transition: transform 0.3s;
     pointer-events: none;
     background: #15151e;
-    image-rendering: -webkit-optimize-contrast;
   }
 
   &--active {
@@ -715,8 +702,7 @@ $radius-sm: 10px;
     width: 100%;
     height: auto;
     display: block;
-    object-fit: contain;
-    filter: contrast(1.035) saturate(1.02); // Khung ôm khít ảnh, không bao giờ bị cắt xén bất kể tỷ lệ ảnh strip
+    object-fit: contain; // Khung ôm khít ảnh, không bao giờ bị cắt xén bất kể tỷ lệ ảnh strip
     transition: transform 0.35s ease;
   }
 
@@ -1319,7 +1305,6 @@ $radius-sm: 10px;
   user-select: none;
   -webkit-user-drag: none;
   touch-action: pan-x pan-y pinch-zoom;
-  filter: contrast(1.035) saturate(1.02);
 }
 
 .lightbox-video {
@@ -1409,7 +1394,6 @@ $radius-sm: 10px;
     object-fit: cover;
     pointer-events: none;
     background: #15151e;
-      filter: contrast(1.035) saturate(1.02);
 }
 
   &:hover {
@@ -1613,7 +1597,6 @@ $radius-sm: 10px;
     display: block;
     object-fit: contain;
     border-radius: 8px;
-    filter: contrast(1.035) saturate(1.02);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
   }
 

@@ -124,12 +124,6 @@
               </ng-container>
 
               <ng-template #mainPhotoImage>
-                <!-- Blur background -->
-                <img [src]="getThumbSrc(item.photo)"
-                     class="blur-background"
-                     [alt]="''"
-                     referrerpolicy="no-referrer" />
-
                 <!-- Main photo 2560px HD Original -->
                 <img [src]="getSessionPhotoSrc(item.photo)"
                      class="main-photo-img"
