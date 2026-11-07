@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     let media = [];
 
     if (mode === 'EVENT' && source.files) {
-      sessions = buildSessionGroups(source.files);
+      sessions = buildSessionGroups(source.files, source.consentedSessions);
       // Trang sự kiện ở ngoài: chỉ lấy các ảnh final làm ảnh bìa cho từng phiên
       media = sessions.map(s => s.finalPhoto).filter(Boolean);
     } else {
@@ -152,7 +152,12 @@ async function resolveGallerySource(requestedId, legacyQueryValue, sessionPublic
     const resolved = await resolveEventFolder(requestedId);
     if (resolved.status !== 'READY') return { status: 'PENDING' };
     const page = await listMediaFiles(resolved.driveFolderId, sessionPublicId || null, true, cursor || null, true, true);
-    return { status: 'READY', files: page.files, nextCursor: page.nextCursor };
+    return {
+      status: 'READY',
+      files: page.files,
+      nextCursor: page.nextCursor,
+      consentedSessions: resolved.consentedSessions ?? null
+    };
   }
   const page = await listMediaFiles(requestedId, null, false, null, true);
   return { files: page.files, nextCursor: null };
@@ -178,7 +183,11 @@ async function resolveEventFolder(eventPublicId) {
       if (response.ok) {
         const payload = await response.json();
         if (payload?.status === 'READY' && isSafeId(payload?.driveFolderId)) {
-          return { status: 'READY', driveFolderId: payload.driveFolderId };
+          return {
+            status: 'READY',
+            driveFolderId: payload.driveFolderId,
+            consentedSessions: Array.isArray(payload.consentedSessions) ? payload.consentedSessions : null
+          };
         }
         // If worker returns PENDING or missing folder, fall through to direct Drive search as fallback
       } else {
@@ -320,12 +329,14 @@ function parseSessionMediaName(name) {
   return { sessionId, role, slotIndex, timestamp };
 }
 
-function buildSessionGroups(files) {
+function buildSessionGroups(files, consentedSessions = null) {
   const sessionMap = new Map();
+  const consentedSet = Array.isArray(consentedSessions) ? new Set(consentedSessions) : null;
 
   for (const file of files) {
     const meta = parseSessionMediaName(file?.name);
     if (!meta) continue;
+    if (consentedSet && !consentedSet.has(meta.sessionId)) continue;
 
     if (!sessionMap.has(meta.sessionId)) {
       sessionMap.set(meta.sessionId, {
