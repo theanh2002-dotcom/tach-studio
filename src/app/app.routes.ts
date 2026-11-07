@@ -15,6 +15,8 @@ export const routes: Routes = [
   { path: 'contact', component: Booking }, // Alias
   { path: 'event/:id', component: EventGallery },
   { path: 'gallery/:id', component: EventGallery },
+  { path: 'event', component: EventGallery },
+  { path: 'gallery', component: EventGallery },
   { path: 'admin', component: Admin },
   { path: '**', redirectTo: '' }
 ];

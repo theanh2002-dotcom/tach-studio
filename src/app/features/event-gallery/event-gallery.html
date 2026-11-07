@@ -115,7 +115,11 @@
               <ng-container *ngIf="isVideo(item.photo); else mainPhotoImage">
                 <video [src]="getVideoPreviewSrc(item.photo)"
                        class="main-photo-video"
+                       [attr.data-slide-index]="item.originalIndex"
                        controls
+                       loop
+                       muted
+                       [muted]="true"
                        playsinline
                        preload="metadata"
                        [attr.aria-label]="item.photo.name || 'Video sự kiện'"
@@ -371,7 +375,7 @@
         <!-- Ảnh chính của phiên trong Feed -->
         <div class="feed-card-media">
           <ng-container *ngIf="isVideo(photo); else feedImg">
-            <video [src]="getVideoPreviewSrc(photo)" preload="metadata" controls playsinline class="feed-video"></video>
+            <video [src]="getVideoPreviewSrc(photo)" preload="metadata" controls loop muted [muted]="true" playsinline class="feed-video"></video>
           </ng-container>
           <ng-template #feedImg>
             <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
@@ -560,6 +564,10 @@
         <video [src]="getVideoPreviewSrc(media)"
                class="lightbox-video"
                controls
+               autoplay
+               loop
+               muted
+               [muted]="true"
                playsinline
                preload="metadata"
                [attr.aria-label]="media?.name || 'Video sự kiện'"

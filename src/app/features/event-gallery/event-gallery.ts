@@ -220,13 +220,54 @@ export class EventGallery implements OnInit, OnDestroy {
 
       this.prepareShareFile(all[idx]);
     });
+
+    // AUTO-LOOP PLAYBACK: Tự động phát & lặp lại (loop) video ở slide đang mở, tạm dừng các slide ẩn
+    effect(() => {
+      const idx = this.selectedIndex();
+      const lbOpen = this.showLightbox();
+      this.lightboxIndex();
+      this.activeSessionMediaIndex();
+      this.photos();
+      this.syncActiveVideoPlayback(idx, lbOpen);
+    });
+  }
+
+  private syncActiveVideoPlayback(activeSlideIdx: number, lbOpen: boolean) {
+    if (typeof document === 'undefined' || typeof requestAnimationFrame === 'undefined') return;
+    requestAnimationFrame(() => {
+      const mainVideos = document.querySelectorAll<HTMLVideoElement>('video.main-photo-video');
+      mainVideos.forEach(video => {
+        const slideAttr = video.getAttribute('data-slide-index');
+        const isCurrent = !lbOpen && slideAttr !== null && Number(slideAttr) === activeSlideIdx;
+        video.loop = true;
+        video.muted = true;
+        if (isCurrent) {
+          video.play().catch(() => {});
+        } else if (!video.paused) {
+          video.pause();
+        }
+      });
+
+      if (lbOpen) {
+        const lbVideo = document.querySelector<HTMLVideoElement>('video.lightbox-video');
+        if (lbVideo) {
+          lbVideo.loop = true;
+          lbVideo.muted = true;
+          lbVideo.play().catch(() => {});
+        }
+      }
+    });
   }
 
   ngOnInit() {
     document.addEventListener('visibilitychange', this.visibilityHandler);
     this.route.paramMap.subscribe(params => {
-      this.eventId = params.get('id');
+      let eventId = params.get('id');
       this.route.queryParamMap.subscribe(queryParams => {
+        if (!eventId) {
+          eventId = queryParams.get('id') || queryParams.get('publicId');
+        }
+        this.eventId = eventId;
         const legacyQueryValue = queryParams.get('m');
         const sessionPublicId = queryParams.get('s');
         this.isSessionGallery = Boolean(sessionPublicId);

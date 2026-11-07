@@ -85,6 +85,7 @@ export interface BoothEvent {
   name: string;
   date: string;
   drive_folder_id: string;
+  gallery_url?: string;
   total_sessions: number;
   consented_sessions: number;
   is_active: number;
@@ -702,6 +703,7 @@ export class Admin implements OnInit, OnDestroy {
             name: e.name || e.id,
             date: e.date || (e.created_at ? e.created_at.slice(0, 10) : ''),
             drive_folder_id: e.drive_folder_id || '',
+            gallery_url: e.gallery_url || '',
             total_sessions: Number(e.session_count ?? e.total_sessions ?? 0),
             consented_sessions: Number(e.consented_count ?? e.consented_sessions ?? 0),
             is_active: e.is_active !== undefined ? Number(e.is_active) : 1,
@@ -813,7 +815,8 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   getEventShareUrl(evt: BoothEvent): string {
-    return `https://tachtach.event-vn.com/gallery?id=${encodeURIComponent(evt.public_id)}`;
+    if (evt.gallery_url) return evt.gallery_url;
+    return `https://tachtach.event-vn.com/event/${encodeURIComponent(evt.public_id || evt.id)}`;
   }
 
   getEventQrUrl(evt: BoothEvent): string {
