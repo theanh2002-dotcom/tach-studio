@@ -9,7 +9,7 @@
         <img src="/logo.jpg" alt="Logo" class="w-full h-full object-cover" />
       </div>
       <h2 class="text-2xl font-serif font-bold text-[#681423] mb-1">Tách Tách Admin Portal</h2>
-      <p class="text-xs text-[#2C1A1D]/70 font-sans mb-6">Đăng nhập để xem tình trạng máy bốt và doanh thu thời gian thực</p>
+      <p class="text-xs text-[#2C1A1D]/70 font-sans mb-6">Đăng nhập để xem tình trạng máy bốt, doanh thu và thư viện ảnh</p>
 
       <form (ngSubmit)="login()" class="space-y-4">
         <div>
@@ -71,46 +71,65 @@
       <span>{{ successMessage() }}</span>
     </div>
 
-    <!-- TAB NAVIGATION -->
-    <div class="flex items-center gap-2 mb-8 border-b border-[#E8DDD2] pb-3 overflow-x-auto">
-      <button (click)="activeTab.set('monitoring')" 
-              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+    <!-- TAB NAVIGATION BAR -->
+    <div class="flex items-center gap-2 mb-8 border-b border-[#E8DDD2] pb-3 overflow-x-auto custom-scrollbar">
+      <button (click)="switchTab('monitoring')" 
+              class="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0"
               [ngClass]="activeTab() === 'monitoring' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
         <span>🖥️</span>
-        <span>Giám Sát Phòng Chụp (Live)</span>
-        <span class="text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full">{{ machines().length }} máy</span>
+        <span>Giám Sát Phòng Chụp</span>
+        <span class="text-[10px] px-2 py-0.5 rounded-full" [ngClass]="activeTab() === 'monitoring' ? 'bg-white/20 text-white' : 'bg-gray-100 text-[#2C1A1D]'">{{ machines().length }} máy</span>
       </button>
 
-      <button (click)="activeTab.set('revenue')" 
-              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+      <button (click)="switchTab('revenue')" 
+              class="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0"
               [ngClass]="activeTab() === 'revenue' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
         <span>💰</span>
         <span>Doanh Thu & Giao Dịch</span>
       </button>
 
+      <button (click)="switchTab('marketing')" 
+              class="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0"
+              [ngClass]="activeTab() === 'marketing' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
+        <span>🌟</span>
+        <span>Ảnh Khách Đồng Ý (Marketing)</span>
+        <span *ngIf="marketingPhotos().length > 0" class="text-[10px] px-2 py-0.5 rounded-full" [ngClass]="activeTab() === 'marketing' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'">{{ marketingPhotos().length }}</span>
+      </button>
+
+      <button (click)="switchTab('events')" 
+              class="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0"
+              [ngClass]="activeTab() === 'events' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
+        <span>📸</span>
+        <span>Thư Viện Sự Kiện</span>
+        <span *ngIf="eventsList().length > 0" class="text-[10px] px-2 py-0.5 rounded-full" [ngClass]="activeTab() === 'events' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-800'">{{ eventsList().length }}</span>
+      </button>
+
       <button (click)="switchTab('settings')" 
-              class="px-5 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+              class="px-4 py-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-2 shrink-0"
               [ngClass]="activeTab() === 'settings' ? 'bg-[#681423] text-white shadow-sm' : 'bg-white text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#FAF6F0]'">
         <span>⚙️</span>
         <span>Cấu Hình (Telegram & Drive)</span>
       </button>
     </div>
 
-    <!-- KPI CARDS SUMMARY -->
+    <!-- KPI CARDS SUMMARY (Top of all tabs) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
       
       <!-- Card 1: Doanh thu -->
       <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Doanh Thu Hôm Nay</span>
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Doanh Thu Thực Thu</span>
           <span class="text-base">💵</span>
         </div>
         <div>
           <div class="text-xl sm:text-2xl font-serif font-bold text-[#681423]">
             {{ formatVND(overview().today_revenue) }}
           </div>
-          <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
-            Tổng doanh thu thực tế hôm nay
+          <div class="text-[11px] text-[#2C1A1D]/60 mt-1 flex flex-col gap-0.5">
+            <span *ngIf="(overview().discount_revenue || 0) > 0" class="text-emerald-700 font-medium">
+              Voucher giảm: -{{ formatVND(overview().discount_revenue || 0) }}
+            </span>
+            <span>Giá niêm yết: {{ formatVND(overview().original_revenue || overview().today_revenue) }}</span>
           </div>
         </div>
       </div>
@@ -126,7 +145,7 @@
             {{ overview().today_sessions }} <span class="text-sm font-sans font-normal text-[#2C1A1D]/60">phiên</span>
           </div>
           <div class="text-[11px] text-[#2C1A1D]/60 mt-1">
-            Số phiên chụp hoàn tất trong ngày
+            Số phiên chụp hoàn tất
           </div>
         </div>
       </div>
@@ -248,9 +267,6 @@
               <div class="flex justify-between items-center text-xs mb-2">
                 <span class="font-bold flex items-center gap-1.5">
                   <span>📄 Cuộn Giấy In DNP RX1HS:</span>
-                  <span *ngIf="m.paper_remaining <= 20" class="text-red-600 font-extrabold animate-pulse">
-                    ⚠️ SẮP HẾT!
-                  </span>
                 </span>
                 <span [ngClass]="getPaperTextColorClass(m)">
                   {{ m.paper_remaining }} / {{ m.paper_total_capacity || 700 }} ảnh ({{ getPaperPercentage(m) }}%)
@@ -258,45 +274,63 @@
               </div>
 
               <!-- Progress bar -->
-              <div class="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                <div class="h-full transition-all duration-500 rounded-full"
+              <div class="w-full h-3 rounded-full bg-[#E8DDD2] overflow-hidden mb-3">
+                <div class="h-full rounded-full transition-all duration-500"
                      [ngClass]="getPaperColorClass(m)"
-                     [style.width.%]="getPaperPercentage(m)"></div>
+                     [style.width.%]="getPaperPercentage(m)">
+                </div>
               </div>
 
               <!-- Reset paper button -->
-              <div class="mt-3 flex justify-between items-center pt-2 border-t border-[#E8DDD2]/60">
-                <span class="text-[11px] text-[#2C1A1D]/60">Máy in: {{ m.printer_status }}</span>
+              <div class="flex items-center justify-between pt-2 border-t border-[#E8DDD2]/60">
+                <span class="text-[11px] text-[#2C1A1D]/60">
+                  <span *ngIf="m.paper_remaining <= 20" class="text-red-600 font-bold">⚠️ SẮP HẾT GIẤY CẦN THAY GẤP</span>
+                  <span *ngIf="m.paper_remaining > 20 && m.paper_remaining <= 100" class="text-amber-600 font-semibold">⚡ Chuẩn bị cuộn mới</span>
+                  <span *ngIf="m.paper_remaining > 100" class="text-emerald-700">✓ Giấy in dồi dào</span>
+                </span>
                 <button type="button" 
-                        (click)="resetPaper(m.id)" 
+                        (click)="resetPaper(m.id)"
                         [disabled]="resettingMachineId() === m.id"
-                        class="text-[11px] font-bold text-[#681423] hover:text-[#C89965] flex items-center gap-1">
+                        class="px-3 py-1 bg-white hover:bg-[#E8DDD2] border border-[#C89965]/60 rounded-lg text-[11px] font-semibold text-[#681423] transition-colors flex items-center gap-1">
                   <span>🔄</span>
-                  <span>{{ resettingMachineId() === m.id ? 'Đang reset...' : 'Đã thay cuộn mới (Reset 700)' }}</span>
+                  <span>{{ resettingMachineId() === m.id ? 'Đang reset...' : 'Reset 700 tờ' }}</span>
                 </button>
               </div>
             </div>
 
-            <!-- PERIPHERAL STATUS DETAILS -->
-            <div class="grid grid-cols-2 gap-3 text-xs mb-5 font-sans">
-              <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-2.5">
-                <span class="text-base">📷</span>
-                <div>
-                  <div class="text-[10px] text-[#2C1A1D]/60">Camera DSLR:</div>
-                  <div class="font-semibold" [ngClass]="m.camera_status === 'CONNECTED' ? 'text-emerald-700' : 'text-red-600 font-bold'">
-                    {{ m.camera_model || 'Canon EOS' }} ({{ m.camera_status === 'CONNECTED' ? 'Tốt' : 'Mất kết nối' }})
-                  </div>
+            <!-- Device Sub-Statuses: Camera, Printer, Storage -->
+            <div class="grid grid-cols-3 gap-2.5 text-center text-xs mb-4">
+              <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                <div class="text-[10px] text-[#2C1A1D]/60 mb-0.5">MÁY ẢNH</div>
+                <div class="font-bold text-[11px]" [ngClass]="m.camera_status === 'CONNECTED' ? 'text-emerald-700' : 'text-red-600'">
+                  {{ m.camera_status === 'CONNECTED' ? '🟢 KẾT NỐI' : '🔴 LỖI' }}
+                </div>
+                <div class="text-[10px] text-[#2C1A1D]/50 truncate mt-0.5" [title]="m.camera_model || 'EOS 200D II'">
+                  {{ m.camera_model || 'EOS 200D II' }}
                 </div>
               </div>
 
-              <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-2.5">
-                <span class="text-base">💾</span>
-                <div>
-                  <div class="text-[10px] text-[#2C1A1D]/60">Ổ cứng trống:</div>
-                  <div class="font-semibold text-[#2C1A1D]">{{ m.disk_free_gb }} GB khả dụng</div>
+              <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                <div class="text-[10px] text-[#2C1A1D]/60 mb-0.5">MÁY IN DNP</div>
+                <div class="font-bold text-[11px]" [ngClass]="m.printer_status === 'READY' ? 'text-emerald-700' : (m.printer_status === 'PRINTING' ? 'text-purple-700' : 'text-red-600')">
+                  {{ m.printer_status || 'READY' }}
+                </div>
+                <div class="text-[10px] text-[#2C1A1D]/50 mt-0.5">
+                  DNP RX1HS
+                </div>
+              </div>
+
+              <div class="p-2.5 rounded-xl bg-gray-50 border border-gray-200">
+                <div class="text-[10px] text-[#2C1A1D]/60 mb-0.5">Ổ CỨNG TRỐNG</div>
+                <div class="font-bold text-[11px]" [ngClass]="m.disk_free_gb < 15 ? 'text-red-600' : 'text-emerald-700'">
+                  {{ m.disk_free_gb }} GB
+                </div>
+                <div class="text-[10px] text-[#2C1A1D]/50 mt-0.5">
+                  {{ m.disk_free_gb < 15 ? 'Cảnh báo đầy' : 'Đủ dung lượng' }}
                 </div>
               </div>
             </div>
+
           </div>
 
           <!-- Card Footer: Heartbeat time -->
@@ -315,45 +349,116 @@
     <!-- ========================================== -->
     <div *ngIf="activeTab() === 'revenue'" class="space-y-6">
       
-      <div class="flex items-center justify-between">
-        <h3 class="font-serif font-bold text-lg text-[#681423]">Lịch Sử Giao Dịch Gần Nhất</h3>
-        <button class="px-4 py-1.5 rounded-full border border-[#C89965] text-xs font-semibold text-[#681423] hover:bg-[#FAF6F0]">
-          📥 Xuất Báo Cáo Excel (.xlsx)
+      <!-- Filter Toolbar -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 border border-[#E8DDD2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        
+        <!-- Range Filter Buttons -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" (click)="setRange('today')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === 'today' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            Hôm nay
+          </button>
+          <button type="button" (click)="setRange('yesterday')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === 'yesterday' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            Hôm qua
+          </button>
+          <button type="button" (click)="setRange('7d')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === '7d' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            7 ngày qua
+          </button>
+          <button type="button" (click)="setRange('30d')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === '30d' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            30 ngày qua
+          </button>
+          <button type="button" (click)="setRange('all')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === 'all' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            Toàn thời gian
+          </button>
+          <button type="button" (click)="setRange('custom')"
+                  class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  [ngClass]="selectedRange() === 'custom' ? 'bg-[#681423] text-white shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+            Tùy chọn ngày...
+          </button>
+        </div>
+
+        <!-- Right Side: Machine Filter & Export CSV Button -->
+        <div class="flex items-center gap-3">
+          <select [(ngModel)]="selectedMachineId" (change)="onFilterChange()"
+                  class="px-3 py-1.5 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] text-xs font-semibold text-[#681423] focus:outline-none">
+            <option value="">Tất cả các máy</option>
+            <option *ngFor="let m of machines()" [value]="m.id">{{ m.name }} ({{ m.id }})</option>
+          </select>
+
+          <button (click)="exportTransactionsCsv()"
+                  class="px-4 py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-bold shadow flex items-center gap-1.5 transition-all">
+            <span>📥</span>
+            <span>Xuất Excel (.csv)</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Custom Date Range Picker (shown when custom is selected) -->
+      <div *ngIf="selectedRange() === 'custom'" class="bg-white rounded-2xl p-4 border border-[#E8DDD2] flex flex-wrap items-center gap-3 text-xs">
+        <span class="font-bold text-[#681423]">Từ ngày:</span>
+        <input type="date" [(ngModel)]="customFrom" class="px-3 py-1.5 rounded-lg border border-[#E8DDD2] bg-[#FAF6F0]" />
+        <span class="font-bold text-[#681423]">Đến ngày:</span>
+        <input type="date" [(ngModel)]="customTo" class="px-3 py-1.5 rounded-lg border border-[#E8DDD2] bg-[#FAF6F0]" />
+        <button (click)="fetchCloudflareDashboard()" class="px-4 py-1.5 rounded-lg bg-[#C89965] hover:bg-[#a67945] text-white font-bold transition-colors">
+          Áp Dụng Lọc
         </button>
       </div>
 
+      <!-- Transactions Table -->
       <div class="bg-white rounded-3xl border border-[#E8DDD2] shadow-sm overflow-hidden">
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto custom-scrollbar">
           <table class="w-full text-left text-xs">
             <thead class="bg-[#FAF6F0] text-[#681423] font-serif uppercase tracking-wider border-b border-[#E8DDD2]">
               <tr>
                 <th class="py-3.5 px-4 font-bold">Thời Gian</th>
                 <th class="py-3.5 px-4 font-bold">Phòng / Máy</th>
+                <th class="py-3.5 px-4 font-bold">Mã Phiên</th>
                 <th class="py-3.5 px-4 font-bold">Gói Chụp</th>
+                <th class="py-3.5 px-4 font-bold">Giá Gốc</th>
+                <th class="py-3.5 px-4 font-bold">Giảm Giá</th>
+                <th class="py-3.5 px-4 font-bold">Thực Thu</th>
                 <th class="py-3.5 px-4 font-bold text-center">Bản In</th>
-                <th class="py-3.5 px-4 font-bold">Số Tiền</th>
                 <th class="py-3.5 px-4 font-bold">Hình Thức</th>
                 <th class="py-3.5 px-4 font-bold text-center">Trạng Thái</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E8DDD2] text-[#2C1A1D]">
               <tr *ngIf="transactions().length === 0">
-                <td colspan="7" class="py-12 text-center text-xs text-[#2C1A1D]/50 italic">
-                  Chưa có giao dịch chụp ảnh nào được ghi nhận hôm nay.
+                <td colspan="10" class="py-12 text-center text-xs text-[#2C1A1D]/50 italic">
+                  Chưa có giao dịch chụp ảnh nào được ghi nhận theo bộ lọc thời gian này.
                 </td>
               </tr>
               <tr *ngFor="let tx of transactions()" class="hover:bg-gray-50/70 transition-colors">
                 <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at) }}</td>
                 <td class="py-3 px-4 font-semibold text-[#681423]">{{ tx.machine_name || tx.machine_id }}</td>
+                <td class="py-3 px-4 font-mono text-[11px] text-[#2C1A1D]/70">{{ tx.session_code || tx.session_public_id || '-' }}</td>
                 <td class="py-3 px-4">{{ tx.package_name }}</td>
-                <td class="py-3 px-4 text-center font-bold">{{ tx.print_copies }} bản</td>
+                <td class="py-3 px-4 text-[#2C1A1D]/60 font-mono">{{ formatVND(tx.original_amount || tx.total_amount) }}</td>
+                <td class="py-3 px-4">
+                  <span *ngIf="(tx.discount_amount || 0) > 0" class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    -{{ formatVND(tx.discount_amount || 0) }}
+                    <span *ngIf="tx.voucher_code" class="text-[10px] text-gray-500 font-normal">({{ tx.voucher_code }})</span>
+                  </span>
+                  <span *ngIf="!tx.discount_amount || tx.discount_amount === 0" class="text-gray-400">-</span>
+                </td>
                 <td class="py-3 px-4 font-serif font-bold text-sm text-[#681423]">{{ formatVND(tx.total_amount) }}</td>
+                <td class="py-3 px-4 text-center font-bold">{{ tx.print_copies }} bản</td>
                 <td class="py-3 px-4">
                   <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
                         [ngClass]="tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') 
                           ? 'bg-blue-50 text-blue-700 border border-blue-200' 
                           : 'bg-emerald-50 text-emerald-700 border border-emerald-200'">
-                    {{ tx.payment_method.includes('SEPAY') ? 'VietQR SePay' : 'Tiền Mặt' }}
+                    {{ tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') ? 'VietQR SePay' : 'Tiền Mặt' }}
                   </span>
                 </td>
                 <td class="py-3 px-4 text-center">
@@ -368,7 +473,406 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- TAB 3: CẤU HÌNH & TÍCH HỢP HỆ THỐNG        -->
+    <!-- TAB 3: ẢNH KHÁCH ĐỒNG Ý SỬ DỤNG (MARKETING) -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab() === 'marketing'" class="space-y-6">
+      
+      <!-- Marketing Toolbar Header -->
+      <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DDD2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🌟</span>
+            <h3 class="font-serif font-bold text-lg text-[#681423]">Kho Ảnh Khách Đồng Ý Truyền Thông (Marketing)</h3>
+            <span class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-300">
+              Chỉ khách bấm ĐỒNG Ý
+            </span>
+          </div>
+          <p class="text-xs text-[#2C1A1D]/70 mt-1 max-w-2xl leading-relaxed">
+            Hệ thống tự động lọc và thu thập những ảnh in hoàn chỉnh mà khách hàng đã tích chọn <b>"Đồng Ý Cho Phép Sử Dụng Ảnh"</b> trên màn hình Kiosk. Bạn có thể tải lẻ, đánh dấu ảnh đẹp, hoặc tải file ZIP nén toàn bộ về máy.
+          </p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-wrap items-center gap-2.5 self-end md:self-auto">
+          <button (click)="selectAllMarketingPhotos()"
+                  *ngIf="marketingPhotos().length > 0"
+                  class="px-3.5 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-xs font-semibold text-[#681423] border border-[#C89965]/40 transition-all">
+            Chọn Tất Cả ({{ marketingPhotos().length }})
+          </button>
+
+          <button (click)="clearSelectedMarketingPhotos()"
+                  *ngIf="selectedMarketingIds().length > 0"
+                  class="px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-[#2C1A1D] transition-all">
+            Bỏ Chọn ({{ selectedMarketingIds().length }})
+          </button>
+
+          <button (click)="downloadBatchZip()"
+                  [disabled]="isBatchDownloading() || marketingPhotos().length === 0"
+                  class="px-5 py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-bold shadow flex items-center gap-2 transition-all disabled:opacity-50">
+            <span [class.animate-spin]="isBatchDownloading()">📦</span>
+            <span>{{ isBatchDownloading() ? ('Đang tạo ZIP ' + batchDownloadProgress()) : (selectedMarketingIds().length > 0 ? ('Tải ' + selectedMarketingIds().length + ' Ảnh (ZIP)') : 'Tải Tất Cả Ảnh (ZIP)') }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Sub-bar -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#E8DDD2]">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-[#681423]">Lọc thời gian:</span>
+          <div class="flex items-center gap-1">
+            <button (click)="setMarketingRange('all')"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    [ngClass]="marketingRange() === 'all' ? 'bg-[#681423] text-white' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+              Tất cả
+            </button>
+            <button (click)="setMarketingRange('today')"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    [ngClass]="marketingRange() === 'today' ? 'bg-[#681423] text-white' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+              Hôm nay
+            </button>
+            <button (click)="setMarketingRange('7d')"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    [ngClass]="marketingRange() === '7d' ? 'bg-[#681423] text-white' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+              7 ngày qua
+            </button>
+            <button (click)="setMarketingRange('30d')"
+                    class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
+                    [ngClass]="marketingRange() === '30d' ? 'bg-[#681423] text-white' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
+              30 ngày qua
+            </button>
+          </div>
+        </div>
+
+        <button (click)="toggleMarketingFeaturedOnly()"
+                class="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all border"
+                [ngClass]="marketingFeaturedOnly() ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-sm' : 'bg-[#FAF6F0] text-[#2C1A1D] border-[#E8DDD2] hover:bg-[#E8DDD2]'">
+          <span>⭐</span>
+          <span>{{ marketingFeaturedOnly() ? 'Đang lọc: Chỉ ảnh nổi bật' : 'Chỉ xem ảnh nổi bật (Starred)' }}</span>
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoadingMarketing()" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+        <div class="w-10 h-10 border-4 border-[#681423] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+        <p class="text-xs text-[#2C1A1D]/70 font-semibold">Đang tải kho ảnh marketing được cấp phép...</p>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="!isLoadingMarketing() && marketingPhotos().length === 0" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+        <div class="text-4xl mb-3">🌟</div>
+        <h4 class="font-serif font-bold text-base text-[#681423] mb-1">Chưa có ảnh marketing nào trong khoảng thời gian này</h4>
+        <p class="text-xs text-[#2C1A1D]/60 max-w-md mx-auto">
+          Khi khách hàng chụp ảnh tại phòng máy và nhấn nút "Đồng Ý Cho Sử Dụng Ảnh", hình ảnh in hoàn chỉnh sẽ tự động xuất hiện tại đây.
+        </p>
+      </div>
+
+      <!-- Marketing Photos Grid -->
+      <div *ngIf="!isLoadingMarketing() && marketingPhotos().length > 0" 
+           class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div *ngFor="let photo of marketingPhotos()"
+             class="bg-white rounded-3xl border border-[#E8DDD2] overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all group relative"
+             [ngClass]="selectedMarketingIds().includes(photo.id) ? 'ring-2 ring-[#681423] border-transparent' : ''">
+          
+          <!-- Image Wrapper with Actions -->
+          <div class="relative bg-gray-100 aspect-[2/3] overflow-hidden cursor-pointer"
+               (click)="openPhotoPreview(photo)">
+            
+            <img [src]="photo.signed_thumb_url || photo.signed_final_url" 
+                 [alt]="photo.session_code"
+                 loading="lazy"
+                 class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+
+            <!-- Top Overlay: Multi-select checkbox & Star button -->
+            <div class="absolute top-2 left-2 right-2 flex items-center justify-between z-10">
+              
+              <!-- Checkbox -->
+              <button type="button" 
+                      (click)="toggleSelectPhoto(photo.id, $event)"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-md transition-all backdrop-blur-sm"
+                      [ngClass]="selectedMarketingIds().includes(photo.id) ? 'bg-[#681423] text-white' : 'bg-white/80 hover:bg-white text-gray-600'">
+                <span *ngIf="selectedMarketingIds().includes(photo.id)">✓</span>
+              </button>
+
+              <!-- Star Featured Button -->
+              <button type="button" 
+                      (click)="toggleStarPhoto(photo, $event)"
+                      class="w-7 h-7 rounded-lg flex items-center justify-center text-sm shadow-md transition-all backdrop-blur-sm"
+                      [ngClass]="photo.is_featured === 1 ? 'bg-amber-400 text-white' : 'bg-white/80 hover:bg-white text-gray-400'">
+                ★
+              </button>
+            </div>
+
+            <!-- Hover overlay button -->
+            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <span class="px-3 py-1.5 rounded-full bg-white text-[#681423] text-[11px] font-bold shadow">
+                🔍 Phóng to
+              </span>
+            </div>
+
+          </div>
+
+          <!-- Card Content / Metadata -->
+          <div class="p-3.5 space-y-2 text-xs">
+            <div class="flex items-start justify-between gap-1">
+              <div>
+                <div class="font-bold text-[#681423] text-xs truncate" [title]="photo.session_code">
+                  {{ photo.session_code || photo.session_public_id }}
+                </div>
+                <div class="text-[10px] text-[#2C1A1D]/60 mt-0.5 truncate">
+                  {{ photo.event_name || photo.machine_name || photo.machine_id }}
+                </div>
+              </div>
+              <span class="text-[9px] bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">
+                ✓ Đồng ý
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t border-[#E8DDD2]/60 text-[10px] text-[#2C1A1D]/60">
+              <span>{{ formatTime(photo.created_at) }}</span>
+              <button (click)="downloadSinglePhoto(photo, $event)"
+                      class="text-[#681423] hover:underline font-bold flex items-center gap-1">
+                <span>⬇️ Tải</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: THƯ VIỆN SỰ KIỆN (EVENTS GALLERY)   -->
+    <!-- ========================================== -->
+    <div *ngIf="activeTab() === 'events'" class="space-y-6">
+      
+      <!-- SUB-VIEW A: DANH SÁCH CÁC SỰ KIỆN (KHI CHƯA CHỌN SỰ KIỆN CỤ THỂ) -->
+      <div *ngIf="!selectedEvent()" class="space-y-6">
+        
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DDD2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📸</span>
+              <h3 class="font-serif font-bold text-lg text-[#681423]">Danh Sách Các Sự Kiện & Hội Nghị</h3>
+              <span class="text-[11px] bg-sky-100 text-sky-800 font-bold px-2.5 py-0.5 rounded-full border border-sky-300">
+                Phân vùng theo quán & máy
+              </span>
+            </div>
+            <p class="text-xs text-[#2C1A1D]/70 mt-1 max-w-2xl leading-relaxed">
+              Các sự kiện được quản lý độc lập theo đúng cơ sở quán và máy bốt thực hiện. Bạn có thể lọc theo từng máy để xem các lượt chụp, ảnh in và video hậu trường (BTS).
+            </p>
+          </div>
+
+          <div class="flex items-center gap-3 self-end md:self-auto">
+            <select [(ngModel)]="selectedEventMachineId" (change)="fetchEvents()"
+                    class="px-3 py-2 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] text-xs font-semibold text-[#681423] focus:outline-none">
+              <option value="">Tất cả các máy của quán</option>
+              <option *ngFor="let m of machines()" [value]="m.id">{{ m.name }} ({{ m.id }})</option>
+            </select>
+
+            <button (click)="fetchEvents()" [disabled]="isLoadingEvents()"
+                    class="px-4 py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-semibold shadow transition-all flex items-center gap-1.5">
+              <span [class.animate-spin]="isLoadingEvents()">🔄</span>
+              <span>Làm Mới</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading Events -->
+        <div *ngIf="isLoadingEvents()" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+          <div class="w-10 h-10 border-4 border-[#681423] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-xs text-[#2C1A1D]/70 font-semibold">Đang tải danh sách sự kiện của quán...</p>
+        </div>
+
+        <!-- Empty Events -->
+        <div *ngIf="!isLoadingEvents() && eventsList().length === 0" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+          <div class="text-4xl mb-3">📁</div>
+          <h4 class="font-serif font-bold text-base text-[#681423] mb-1">Chưa có sự kiện nào cho máy / cơ sở này</h4>
+          <p class="text-xs text-[#2C1A1D]/60 max-w-md mx-auto">
+            Khi máy bốt chạy chế độ sự kiện và đồng bộ ảnh về hệ thống, sự kiện sẽ xuất hiện độc lập tại đây.
+          </p>
+        </div>
+
+        <!-- Event Cards Grid -->
+        <div *ngIf="!isLoadingEvents() && eventsList().length > 0"
+             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let evt of eventsList()"
+               class="bg-white rounded-3xl p-6 border border-[#E8DDD2] shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+            
+            <div>
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="w-10 h-10 rounded-2xl bg-rose-50 text-[#681423] flex items-center justify-center text-lg font-bold border border-rose-100">
+                  🎉
+                </div>
+                <span class="text-[10px] bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
+                  {{ evt.consented_sessions }} khách đồng ý
+                </span>
+              </div>
+
+              <h4 class="font-serif font-bold text-base text-[#681423] mb-1 line-clamp-2" [title]="evt.name">
+                {{ evt.name }}
+              </h4>
+              <p class="text-xs text-[#2C1A1D]/60 font-mono mb-4">
+                Mã: {{ evt.public_id }} • {{ evt.date }}
+              </p>
+
+              <!-- Stats Pill -->
+              <div class="flex items-center gap-3 p-3 rounded-2xl bg-[#FAF6F0] border border-[#E8DDD2] text-xs mb-4">
+                <div>
+                  <span class="text-[#2C1A1D]/60 block text-[10px]">TỔNG PHIÊN</span>
+                  <span class="font-serif font-bold text-[#681423] text-sm">{{ evt.total_sessions }} lượt</span>
+                </div>
+                <div class="h-6 w-px bg-[#E8DDD2]"></div>
+                <div>
+                  <span class="text-[#2C1A1D]/60 block text-[10px]">MARKETING</span>
+                  <span class="font-serif font-bold text-emerald-700 text-sm">{{ evt.consented_sessions }} ảnh</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Action Footer -->
+            <div class="pt-3 border-t border-[#E8DDD2] flex items-center justify-between gap-2">
+              <button (click)="selectEvent(evt)"
+                      class="flex-1 py-2 px-3 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-bold shadow text-center transition-all flex items-center justify-center gap-1.5">
+                <span>👁️</span>
+                <span>Xem Thư Viện ({{ evt.total_sessions }})</span>
+              </button>
+
+              <button (click)="openEventQr(evt, $event)" title="Mã QR sự kiện"
+                      class="p-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs text-[#681423] transition-colors">
+                📱 QR
+              </button>
+
+              <button (click)="copyEventShareUrl(evt, $event)" title="Sao chép link web"
+                      class="p-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs text-[#681423] transition-colors">
+                📋
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- SUB-VIEW B: CHI TIẾT SỰ KIỆN & CÁC PHIÊN CHỤP (DRILLDOWN GALLERY) -->
+      <div *ngIf="selectedEvent()" class="space-y-6">
+        
+        <!-- Drilldown Navigation Bar -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-[#E8DDD2] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <button (click)="backToEventsList()"
+                    class="w-10 h-10 rounded-2xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 flex items-center justify-center text-[#681423] font-bold transition-colors">
+              ←
+            </button>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-serif font-bold text-lg text-[#681423]">{{ selectedEvent()?.name }}</h3>
+                <span class="text-[10px] bg-rose-100 text-[#681423] font-bold px-2 py-0.5 rounded-full">
+                  {{ eventSessions().length }} phiên chụp
+                </span>
+              </div>
+              <p class="text-xs text-[#2C1A1D]/60 mt-0.5">
+                Ngày: {{ selectedEvent()?.date }} • Mã: {{ selectedEvent()?.public_id }}
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 self-end md:self-auto">
+            <button (click)="openEventQr(selectedEvent()!, $event)"
+                    class="px-4 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs font-semibold text-[#681423] transition-all flex items-center gap-1.5">
+              <span>📱</span>
+              <span>Mã QR Sự Kiện</span>
+            </button>
+            <button (click)="copyEventShareUrl(selectedEvent()!, $event)"
+                    class="px-4 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs font-semibold text-[#681423] transition-all flex items-center gap-1.5">
+              <span>📋</span>
+              <span>Sao Chép Link Khách</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading Event Sessions -->
+        <div *ngIf="isLoadingEventSessions()" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+          <div class="w-10 h-10 border-4 border-[#681423] border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p class="text-xs text-[#2C1A1D]/70 font-semibold">Đang tải toàn bộ các phiên chụp và ảnh in...</p>
+        </div>
+
+        <!-- Empty Event Sessions -->
+        <div *ngIf="!isLoadingEventSessions() && eventSessions().length === 0" class="bg-white rounded-3xl p-12 text-center border border-[#E8DDD2]">
+          <div class="text-4xl mb-3">📸</div>
+          <h4 class="font-serif font-bold text-base text-[#681423] mb-1">Chưa có phiên chụp nào trong sự kiện này</h4>
+          <p class="text-xs text-[#2C1A1D]/60 max-w-md mx-auto">
+            Các phiên chụp mới khi tải lên Google Drive sẽ tự động được hiển thị tại đây.
+          </p>
+        </div>
+
+        <!-- Event Sessions Grid -->
+        <div *ngIf="!isLoadingEventSessions() && eventSessions().length > 0"
+             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div *ngFor="let s of eventSessions()"
+               class="bg-white rounded-3xl p-5 border border-[#E8DDD2] shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
+            
+            <div>
+              <!-- Session Header -->
+              <div class="flex items-center justify-between text-xs mb-3">
+                <span class="font-mono font-bold text-[#681423]">{{ s.session_code || s.session_public_id }}</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                      [ngClass]="s.photo_usage_consent === 1 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-gray-100 text-gray-500'">
+                  {{ s.photo_usage_consent === 1 ? '✓ Khách Đồng Ý' : 'Riêng tư' }}
+                </span>
+              </div>
+
+              <!-- Main Strip Thumbnail -->
+              <div class="bg-gray-100 aspect-[2/3] rounded-2xl overflow-hidden mb-3 relative cursor-pointer"
+                   (click)="openSessionDetail(s)">
+                <img *ngIf="s.finalPhoto"
+                     [src]="s.finalPhoto.signedThumbUrl || s.finalPhoto.signedUrl" 
+                     [alt]="s.session_code"
+                     loading="lazy"
+                     class="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                <div *ngIf="!s.finalPhoto" class="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                  Chưa có ảnh in
+                </div>
+
+                <!-- BTS Badge if present -->
+                <span *ngIf="s.btsVideo" class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 text-white text-[10px] font-bold flex items-center gap-1 backdrop-blur-sm">
+                  <span>🎥</span>
+                  <span>Có Video BTS</span>
+                </span>
+              </div>
+
+              <!-- Mini Shots Preview (raw photos 1, 2, 3, 4) -->
+              <div *ngIf="s.shots && s.shots.length > 0" class="grid grid-cols-4 gap-1.5 mb-3">
+                <div *ngFor="let shot of s.shots.slice(0, 4)" class="aspect-square bg-gray-100 rounded-lg overflow-hidden border border-[#E8DDD2]">
+                  <img [src]="shot.signedThumbUrl || shot.signedUrl" [alt]="shot.name" loading="lazy" class="w-full h-full object-cover" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Actions Footer -->
+            <div class="pt-3 border-t border-[#E8DDD2] flex items-center justify-between gap-2 text-xs">
+              <button (click)="openSessionDetail(s)"
+                      class="flex-1 py-2 px-3 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-[#681423] font-bold text-center border border-[#C89965]/40 transition-colors">
+                Xem Chi Tiết
+              </button>
+
+              <button (click)="copyGuestShareUrl(s.guestShareUrl, $event)"
+                      title="Sao chép liên kết khách xem ảnh"
+                      class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#2C1A1D] font-semibold transition-colors flex items-center gap-1">
+                <span>🔗</span>
+                <span>Link Khách</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: CẤU HÌNH & TÍCH HỢP HỆ THỐNG        -->
     <!-- ========================================== -->
     <div *ngIf="activeTab() === 'settings'" class="space-y-6">
 
@@ -562,6 +1066,8 @@
           <div><b>Worker URL:</b> https://tanhbooth-api.laihoanganh456.workers.dev</div>
           <div><b>Heartbeat API:</b> POST /v1/telemetry/heartbeat (chu kỳ 3 phút)</div>
           <div><b>Transaction API:</b> POST /v1/telemetry/transactions (bắn ngay khi thanh toán)</div>
+          <div><b>Marketing Photos API:</b> GET /v1/admin/marketing-photos</div>
+          <div><b>Events Gallery API:</b> GET /v1/admin/events</div>
           <div><b>Settings API:</b> GET/POST /v1/admin/settings (Cloudflare D1 dynamic)</div>
           <div><b>Database:</b> Cloudflare D1 (<code>tanhbooth-license-prod</code>)</div>
         </div>
@@ -570,7 +1076,7 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- MODAL: SỬA / THÊM MỚI PHÒNG CHỤP          -->
+    <!-- MODAL 1: SỬA / THÊM MỚI PHÒNG CHỤP        -->
     <!-- ========================================== -->
     <div *ngIf="isMachineModalOpen()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-[#E8DDD2] relative max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -596,7 +1102,7 @@
         <!-- Form Body -->
         <div class="space-y-4 font-sans text-xs">
           
-          <!-- CHẾ ĐỘ THÊM MỚI: CHỈ CẦN NHẬP MÃ KÍCH HOẠT (LICENSE KEY) -->
+          <!-- CHẾ ĐỘ THÊM MỚI -->
           <ng-container *ngIf="isCreateMode()">
             <div>
               <label class="block font-bold text-[#2C1A1D] mb-1">Mã Kích Hoạt Bản Quyền (License Key) *</label>
@@ -628,7 +1134,7 @@
             </div>
           </ng-container>
 
-          <!-- CHẾ ĐỘ SỬA: DÀNH CHO CẬP NHẬT THÔNG SỐ BUỒNG ĐÃ CÓ -->
+          <!-- CHẾ ĐỘ SỬA -->
           <ng-container *ngIf="!isCreateMode()">
             <div>
               <label class="block font-bold text-[#2C1A1D] mb-1">Mã Buồng Chụp Kỹ Thuật (Machine ID)</label>
@@ -691,6 +1197,181 @@
             <span>{{ isCreateMode() ? '🔗' : '💾' }}</span>
             <span>{{ isSavingMachine() ? 'Đang Xử Lý...' : (isCreateMode() ? 'Liên Kết Phòng Chụp' : 'Lưu Thay Đổi') }}</span>
           </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 2: XEM PHÓNG TO ẢNH MARKETING        -->
+    <!-- ========================================== -->
+    <div *ngIf="previewPhoto()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-[#E8DDD2] relative flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        
+        <!-- Photo Container -->
+        <div class="flex-1 bg-gray-100 rounded-2xl overflow-hidden flex items-center justify-center">
+          <img [src]="previewPhoto()?.signed_final_url || previewPhoto()?.signed_thumb_url"
+               [alt]="previewPhoto()?.session_code"
+               class="max-h-[70vh] object-contain rounded-xl" />
+        </div>
+
+        <!-- Photo Details -->
+        <div class="w-full md:w-72 flex flex-col justify-between space-y-4 text-xs font-sans">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-bold text-sm text-[#681423]">Chi Tiết Ảnh</span>
+              <button (click)="closePhotoPreview()" class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold">
+                ✕
+              </button>
+            </div>
+
+            <div class="space-y-2.5">
+              <div>
+                <span class="text-[#2C1A1D]/60 block text-[10px]">MÃ PHIÊN</span>
+                <span class="font-mono font-bold text-[#681423] text-sm">{{ previewPhoto()?.session_code || previewPhoto()?.session_public_id }}</span>
+              </div>
+              <div>
+                <span class="text-[#2C1A1D]/60 block text-[10px]">SỰ KIỆN / PHÒNG CHỤP</span>
+                <span class="font-bold">{{ previewPhoto()?.event_name || previewPhoto()?.machine_name || previewPhoto()?.machine_id }}</span>
+              </div>
+              <div>
+                <span class="text-[#2C1A1D]/60 block text-[10px]">THỜI GIAN CHỤP</span>
+                <span>{{ formatTime(previewPhoto()?.created_at || '') }}</span>
+              </div>
+              <div>
+                <span class="text-[#2C1A1D]/60 block text-[10px]">ĐỒNG Ý MARKETING</span>
+                <span class="text-emerald-700 font-bold">✓ Khách đã đồng ý (Consent = 1)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 pt-4 border-t border-[#E8DDD2]">
+            <button (click)="toggleStarPhoto(previewPhoto()!, $event)"
+                    class="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold transition-colors flex items-center justify-center gap-1.5">
+              <span>{{ previewPhoto()?.is_featured === 1 ? '★ Đã Ghim Nổi Bật' : '☆ Đánh Dấu Nổi Bật' }}</span>
+            </button>
+            <button (click)="downloadSinglePhoto(previewPhoto()!, $event)"
+                    class="w-full py-2.5 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold shadow transition-colors flex items-center justify-center gap-1.5">
+              <span>⬇️ Tải Ảnh Về Máy</span>
+            </button>
+            <button *ngIf="previewPhoto()?.signed_guest_share_url"
+                    (click)="copyGuestShareUrl(previewPhoto()!.signed_guest_share_url!)"
+                    class="w-full py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#2C1A1D] font-semibold transition-colors flex items-center justify-center gap-1.5">
+              <span>🔗 Link Khách Quét QR</span>
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 3: MÃ QR SỰ KIỆN (EVENT QR CODE)     -->
+    <!-- ========================================== -->
+    <div *ngIf="eventQrModal()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl max-w-sm w-full p-6 sm:p-7 shadow-2xl border border-[#E8DDD2] text-center relative">
+        <button (click)="closeEventQr()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+          ✕
+        </button>
+
+        <h3 class="font-serif font-bold text-lg text-[#681423] mb-1">{{ eventQrModal()?.name }}</h3>
+        <p class="text-xs text-[#2C1A1D]/60 mb-5">Khách quét mã để truy cập thư viện ảnh trực tiếp trên điện thoại</p>
+
+        <!-- QR Image using public QR generator -->
+        <div class="bg-[#FAF6F0] p-4 rounded-2xl border border-[#E8DDD2] inline-block mb-4 shadow-inner">
+          <img [src]="getEventQrUrl(eventQrModal()!)"
+               [alt]="eventQrModal()?.name"
+               class="w-48 h-48 mx-auto" />
+        </div>
+
+        <div class="p-2.5 rounded-xl bg-gray-100 font-mono text-[11px] text-[#2C1A1D]/70 truncate mb-4 select-all">
+          {{ getEventShareUrl(eventQrModal()!) }}
+        </div>
+
+        <button (click)="copyEventShareUrl(eventQrModal()!)"
+                class="w-full py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs uppercase tracking-wider shadow transition-all">
+          📋 Sao Chép Liên Kết
+        </button>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODAL 4: CHI TIẾT PHIÊN CHỤP SỰ KIỆN       -->
+    <!-- ========================================== -->
+    <div *ngIf="selectedSession()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div class="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 shadow-2xl border border-[#E8DDD2] relative max-h-[92vh] overflow-y-auto custom-scrollbar">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-4 border-b border-[#E8DDD2] mb-6">
+          <div>
+            <h3 class="font-serif font-bold text-lg text-[#681423]">
+              Phiên Chụp: {{ selectedSession()?.session_code || selectedSession()?.session_public_id }}
+            </h3>
+            <span class="text-xs text-[#2C1A1D]/60">Thời gian: {{ formatTime(selectedSession()?.created_at || '') }}</span>
+          </div>
+          <button (click)="closeSessionDetail()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
+            ✕
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Column 1: Ảnh in hoàn chỉnh -->
+          <div>
+            <h4 class="font-serif font-bold text-sm text-[#681423] mb-2">Ảnh In Hoàn Chỉnh (Final Strip)</h4>
+            <div class="bg-gray-100 rounded-2xl overflow-hidden aspect-[2/3] flex items-center justify-center border border-[#E8DDD2]">
+              <img *ngIf="selectedSession()?.finalPhoto"
+                   [src]="selectedSession()?.finalPhoto?.signedUrl"
+                   class="w-full h-full object-contain" />
+              <div *ngIf="!selectedSession()?.finalPhoto" class="text-xs text-gray-400">
+                Chưa có ảnh in
+              </div>
+            </div>
+            <div *ngIf="selectedSession()?.finalPhoto" class="mt-3">
+              <a [href]="selectedSession()?.finalPhoto?.signedUrl" target="_blank"
+                 class="inline-flex items-center gap-1 text-xs text-[#681423] font-bold hover:underline">
+                ⬇️ Tải Ảnh In Gốc
+              </a>
+            </div>
+          </div>
+
+          <!-- Column 2: Raw shots & BTS Video -->
+          <div class="space-y-5">
+            
+            <!-- Raw Shots -->
+            <div>
+              <h4 class="font-serif font-bold text-sm text-[#681423] mb-2">Ảnh Gốc Các Lượt Chụp (Shots)</h4>
+              <div *ngIf="selectedSession()?.shots && selectedSession()!.shots.length > 0" class="grid grid-cols-2 gap-2">
+                <a *ngFor="let shot of selectedSession()!.shots" [href]="shot.signedUrl" target="_blank"
+                   class="aspect-[3/2] bg-gray-100 rounded-xl overflow-hidden border border-[#E8DDD2] block group relative">
+                  <img [src]="shot.signedThumbUrl || shot.signedUrl" [alt]="shot.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <span class="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/60 text-white text-[9px]">Gốc</span>
+                </a>
+              </div>
+              <div *ngIf="!selectedSession()?.shots || selectedSession()!.shots.length === 0" class="text-xs text-gray-400">
+                Không tìm thấy file ảnh gốc
+              </div>
+            </div>
+
+            <!-- BTS Video Player -->
+            <div *ngIf="selectedSession()?.btsVideo">
+              <h4 class="font-serif font-bold text-sm text-[#681423] mb-2">Video Hậu Trường (BTS Video)</h4>
+              <div class="bg-black rounded-2xl overflow-hidden aspect-video">
+                <video [src]="selectedSession()?.btsVideo?.signedUrl" controls class="w-full h-full"></video>
+              </div>
+            </div>
+
+            <!-- Guest Link -->
+            <div class="pt-3 border-t border-[#E8DDD2]">
+              <button (click)="copyGuestShareUrl(selectedSession()!.guestShareUrl)"
+                      class="w-full py-2.5 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-[#681423] border border-[#C89965]/40 font-bold text-xs transition-colors flex items-center justify-center gap-1.5">
+                <span>🔗 Sao Chép Liên Kết Khách Quét QR</span>
+              </button>
+            </div>
+
+          </div>
+
         </div>
 
       </div>

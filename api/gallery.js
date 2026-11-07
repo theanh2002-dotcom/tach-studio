@@ -254,7 +254,7 @@ async function driveList(query, fields, initialCursor = null, loadAllPages = fal
     const data = await response.json();
     if (Array.isArray(data.files)) result.push(...data.files);
     pageToken = typeof data.nextPageToken === 'string' ? data.nextPageToken : '';
-  } while (loadAllPages && pageToken && result.length < 1000);
+  } while (loadAllPages && pageToken && result.length < 5000);
   return { files: result, nextCursor: loadAllPages ? null : (pageToken || null) };
 }
 

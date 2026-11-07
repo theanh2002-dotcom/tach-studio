@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, signal, computed, inject, ChangeDetectorR
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import JSZip from 'jszip';
 
 export interface BoothMachine {
   id: string;
@@ -29,11 +30,18 @@ export interface BoothTransaction {
   machine_name?: string;
   store_name?: string;
   session_code?: string;
+  session_public_id?: string;
   package_name: string;
+  original_amount?: number;
+  discount_amount?: number;
+  voucher_code?: string;
   total_amount: number;
   print_copies: number;
   payment_method: string;
   payment_status: string;
+  event_public_id?: string;
+  event_name?: string;
+  paid_at?: string;
   created_at: string;
 }
 
@@ -43,6 +51,63 @@ export interface DashboardOverview {
   today_prints: number;
   qr_revenue: number;
   cash_revenue: number;
+  discount_revenue?: number;
+  original_revenue?: number;
+}
+
+export interface MarketingPhoto {
+  id: string;
+  session_public_id: string;
+  session_code: string;
+  store_id: string;
+  machine_id: string;
+  machine_name?: string;
+  event_public_id?: string;
+  event_name?: string;
+  guest_name?: string;
+  guest_phone?: string;
+  photo_usage_consent: number;
+  consent_at: string;
+  is_featured: number;
+  created_at: string;
+  final_drive_file_id?: string;
+  signed_final_url?: string;
+  signed_thumb_url?: string;
+  signed_guest_share_url?: string;
+}
+
+export interface BoothEvent {
+  id: string;
+  public_id: string;
+  store_id: string;
+  name: string;
+  date: string;
+  drive_folder_id: string;
+  total_sessions: number;
+  consented_sessions: number;
+  is_active: number;
+  created_at: string;
+}
+
+export interface EventSessionFile {
+  id: string;
+  name: string;
+  signedUrl: string;
+  signedThumbUrl?: string;
+}
+
+export interface EventSession {
+  id: string;
+  session_public_id: string;
+  session_code: string;
+  guest_name?: string;
+  photo_usage_consent: number;
+  created_at: string;
+  drive_session_folder_id?: string;
+  finalPhoto: EventSessionFile | null;
+  shots: EventSessionFile[];
+  btsVideo: EventSessionFile | null;
+  guestShareUrl: string;
 }
 
 @Component({
@@ -56,7 +121,7 @@ export class Admin implements OnInit, OnDestroy {
 
   adminSecret = signal<string>('');
   isAuthenticated = signal<boolean>(false);
-  activeTab = signal<'monitoring' | 'revenue' | 'settings'>('monitoring');
+  activeTab = signal<'monitoring' | 'revenue' | 'marketing' | 'events' | 'settings'>('monitoring');
   isLoading = signal<boolean>(false);
   errorMessage = signal<string>('');
   successMessage = signal<string>('');
@@ -68,8 +133,36 @@ export class Admin implements OnInit, OnDestroy {
     today_revenue: 0,
     today_prints: 0,
     qr_revenue: 0,
-    cash_revenue: 0
+    cash_revenue: 0,
+    discount_revenue: 0,
+    original_revenue: 0
   });
+
+  // Revenue Filters
+  selectedRange = signal<'today' | 'yesterday' | '7d' | '30d' | 'all' | 'custom'>('today');
+  customFrom = signal<string>('');
+  customTo = signal<string>('');
+  selectedMachineId = signal<string>('');
+
+  // Marketing Gallery State
+  marketingPhotos = signal<MarketingPhoto[]>([]);
+  isLoadingMarketing = signal<boolean>(false);
+  marketingRange = signal<'all' | 'today' | '7d' | '30d'>('all');
+  marketingFeaturedOnly = signal<boolean>(false);
+  selectedMarketingIds = signal<string[]>([]);
+  isBatchDownloading = signal<boolean>(false);
+  batchDownloadProgress = signal<string>('');
+  previewPhoto = signal<MarketingPhoto | null>(null);
+
+  // Events & Gallery State
+  eventsList = signal<BoothEvent[]>([]);
+  isLoadingEvents = signal<boolean>(false);
+  selectedEventMachineId = signal<string>('');
+  selectedEvent = signal<BoothEvent | null>(null);
+  eventSessions = signal<EventSession[]>([]);
+  isLoadingEventSessions = signal<boolean>(false);
+  selectedSession = signal<EventSession | null>(null);
+  eventQrModal = signal<BoothEvent | null>(null);
 
   // Modal State for Editing / Creating Machine
   isMachineModalOpen = signal<boolean>(false);
@@ -152,7 +245,9 @@ export class Admin implements OnInit, OnDestroy {
     // Auto-refresh every 30s when tab is active
     this.refreshIntervalId = setInterval(() => {
       if (this.isAuthenticated() && !document.hidden) {
-        this.fetchCloudflareDashboard(true);
+        if (this.activeTab() === 'monitoring' || this.activeTab() === 'revenue') {
+          this.fetchCloudflareDashboard(true);
+        }
       }
     }, 30000);
   }
@@ -172,7 +267,7 @@ export class Admin implements OnInit, OnDestroy {
     this.errorMessage.set('');
 
     try {
-      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard`, {
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard?storeId=store_hp_01`, {
         headers: {
           'Authorization': `Bearer ${secret}`,
           'Accept': 'application/json'
@@ -187,6 +282,9 @@ export class Admin implements OnInit, OnDestroy {
           if (data.overview) this.overview.set(data.overview);
           if (Array.isArray(data.machines) && data.machines.length > 0) {
             this.machines.set(data.machines);
+            const managed = new Set<string>(this.getManagedMachineIds());
+            for (const m of data.machines) managed.add(m.id);
+            this.saveManagedMachineIds(Array.from(managed));
           }
           if (Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0) {
             this.transactions.set(data.recentTransactions);
@@ -219,23 +317,23 @@ export class Admin implements OnInit, OnDestroy {
     this.errorMessage.set('');
 
     const managedIds = this.getManagedMachineIds();
-    if (managedIds.length === 0) {
-      this.machines.set([]);
-      this.transactions.set([]);
-      this.overview.set({
-        today_sessions: 0,
-        today_revenue: 0,
-        today_prints: 0,
-        qr_revenue: 0,
-        cash_revenue: 0
-      });
-      if (!silent) this.isLoading.set(false);
-      this.cdr.markForCheck();
-      return;
-    }
 
     try {
-      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard?machineIds=${encodeURIComponent(managedIds.join(','))}&storeId=store_hp_01`, {
+      const params = new URLSearchParams();
+      params.set('storeId', 'store_hp_01');
+      params.set('range', this.selectedRange());
+      if (this.selectedRange() === 'custom') {
+        if (this.customFrom()) params.set('from', this.customFrom());
+        if (this.customTo()) params.set('to', this.customTo());
+      }
+      if (this.selectedMachineId()) {
+        params.set('machineId', this.selectedMachineId());
+      }
+      if (managedIds.length > 0) {
+        params.set('machineIds', managedIds.join(','));
+      }
+
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/dashboard?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${this.adminSecret().trim()}`,
           'Accept': 'application/json'
@@ -246,60 +344,20 @@ export class Admin implements OnInit, OnDestroy {
         const data = await response.json();
         if (data.ok) {
           if (data.overview) this.overview.set(data.overview);
-          
+
           const fetchedMachines: BoothMachine[] = Array.isArray(data.machines) ? data.machines : [];
-          
-          // Deduplicate and canonicalize managedIds:
-          // Any managedId that matches an existing machine's ID, license_id, or license_key_prefix
-          // will be mapped to the machine's true ID.
-          const updatedManagedIds = new Set<string>();
-          for (const mid of managedIds) {
-            const matchedMachine = fetchedMachines.find(m => 
-              m.id === mid || 
-              m.license_id === mid || 
-              (m.license_key_prefix && (mid === m.license_key_prefix || mid.startsWith(m.license_key_prefix)))
-            );
-            if (matchedMachine) {
-              updatedManagedIds.add(matchedMachine.id);
-            } else {
-              updatedManagedIds.add(mid);
-            }
+
+          // Deduplicate and canonicalize managedIds
+          const updatedManagedIds = new Set<string>(managedIds);
+          for (const m of fetchedMachines) {
+            updatedManagedIds.add(m.id);
           }
           this.saveManagedMachineIds(Array.from(updatedManagedIds));
 
-          // Build final unique machine list (keyed by m.id to strictly prevent any duplicates)
+          // Build final unique machine list
           const machineMap = new Map<string, BoothMachine>();
-          
-          // 1. First add all fetched remote machines
           for (const m of fetchedMachines) {
             machineMap.set(m.id, m);
-          }
-
-          // 2. Only add placeholder if an ID in updatedManagedIds has NO remote machine at all
-          for (const mid of updatedManagedIds) {
-            if (!machineMap.has(mid)) {
-              const isAlreadyPresent = fetchedMachines.some(m => 
-                m.license_id === mid || 
-                (m.license_key_prefix && (mid === m.license_key_prefix || mid.startsWith(m.license_key_prefix)))
-              );
-              if (!isAlreadyPresent) {
-                machineMap.set(mid, {
-                  id: mid,
-                  name: `Phòng ${mid}`,
-                  store_id: 'store_hp_01',
-                  store_name: 'Tách Tách Studio',
-                  status: 'IDLE',
-                  paper_remaining: 700,
-                  paper_total_capacity: 700,
-                  printer_status: 'READY',
-                  camera_status: 'CONNECTED',
-                  camera_model: 'Canon EOS 200D II',
-                  disk_free_gb: 120,
-                  app_version: '1.0.4',
-                  last_heartbeat_at: ''
-                });
-              }
-            }
           }
 
           this.machines.set(Array.from(machineMap.values()));
@@ -327,7 +385,439 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
-  // Machine CRUD Modal Management
+  setRange(range: 'today' | 'yesterday' | '7d' | '30d' | 'all' | 'custom') {
+    this.selectedRange.set(range);
+    this.fetchCloudflareDashboard();
+  }
+
+  onFilterChange() {
+    this.fetchCloudflareDashboard();
+  }
+
+  exportTransactionsCsv() {
+    const list = this.transactions();
+    if (!list || list.length === 0) {
+      alert('Không có dữ liệu giao dịch để xuất file!');
+      return;
+    }
+
+    const headers = [
+      'Thời gian',
+      'Mã giao dịch',
+      'Phòng / Máy',
+      'Mã phiên',
+      'Gói chụp',
+      'Giá gốc (VNĐ)',
+      'Giảm giá (VNĐ)',
+      'Mã voucher',
+      'Thực thu (VNĐ)',
+      'Bản in',
+      'Phương thức',
+      'Trạng thái'
+    ];
+
+    const rows = list.map(tx => [
+      `"${this.formatTime(tx.created_at)}"`,
+      `"${tx.id}"`,
+      `"${tx.machine_name || tx.machine_id}"`,
+      `"${tx.session_code || tx.session_public_id || ''}"`,
+      `"${tx.package_name}"`,
+      tx.original_amount || tx.total_amount,
+      tx.discount_amount || 0,
+      `"${tx.voucher_code || ''}"`,
+      tx.total_amount,
+      tx.print_copies,
+      `"${tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') ? 'VietQR SePay' : 'Tiền mặt'}"`,
+      `"${tx.payment_status === 'PAID' ? 'Thành công' : tx.payment_status}"`
+    ]);
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tach_tach_giao_dich_${this.selectedRange()}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  // ==========================================
+  // MARKETING PHOTOS (CONSENTED PHOTO VAULT)
+  // ==========================================
+  async fetchMarketingPhotos() {
+    this.isLoadingMarketing.set(true);
+    this.errorMessage.set('');
+    try {
+      const params = new URLSearchParams();
+      params.set('storeId', 'store_hp_01');
+      params.set('range', this.marketingRange());
+      if (this.marketingFeaturedOnly()) {
+        params.set('featuredOnly', 'true');
+      }
+      params.set('limit', '60');
+
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/marketing-photos?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && Array.isArray(data.photos)) {
+          const rawPhotos = data.photos;
+          const normalized: MarketingPhoto[] = rawPhotos.map((p: any) => {
+            const sId = p.sessionId || p.id || p.session_public_id || '';
+            return {
+              id: sId,
+              session_public_id: sId,
+              session_code: p.sessionCode || p.session_code || (sId ? `#ses_${sId.slice(4, 12)}` : ''),
+              store_id: p.storeId || p.store_id || 'store_hp_01',
+              machine_id: p.machineId || p.machine_id || '',
+              machine_name: p.machineName || p.machine_name || '',
+              event_public_id: p.eventPublicId || p.event_public_id || '',
+              event_name: p.eventName || p.event_name || '',
+              guest_name: p.guestName || p.guest_name || '',
+              guest_phone: p.guestPhone || p.guest_phone || '',
+              photo_usage_consent: p.photoUsageConsent === 1 || p.photo_usage_consent === 1 || p.photoUsageConsent === true ? 1 : 0,
+              consent_at: p.consentedAt || p.consent_at || '',
+              is_featured: p.isFeatured === true || p.is_featured === 1 ? 1 : 0,
+              created_at: p.createdAt || p.created_at || '',
+              final_drive_file_id: p.finalDriveFileId || p.final_drive_file_id || '',
+              signed_final_url: p.finalPhoto?.mediaUrl || p.finalPhoto?.downloadUrl || p.signed_final_url || '',
+              signed_thumb_url: p.finalPhoto?.thumbnailUrl || p.finalPhoto?.mediaUrl || p.signed_thumb_url || p.signed_final_url || '',
+              signed_guest_share_url: p.guestShareUrl || p.signed_guest_share_url || ''
+            };
+          });
+          this.marketingPhotos.set(normalized);
+        } else {
+          this.marketingPhotos.set([]);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to fetch marketing photos:', err?.message || err);
+    } finally {
+      this.isLoadingMarketing.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  setMarketingRange(range: 'all' | 'today' | '7d' | '30d') {
+    this.marketingRange.set(range);
+    this.fetchMarketingPhotos();
+  }
+
+  toggleMarketingFeaturedOnly() {
+    this.marketingFeaturedOnly.update(v => !v);
+    this.fetchMarketingPhotos();
+  }
+
+  async toggleStarPhoto(photo: MarketingPhoto, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    const nextFeatured = photo.is_featured === 1 ? 0 : 1;
+
+    // Optimistic local update
+    this.marketingPhotos.update(list => list.map(p => p.id === photo.id ? { ...p, is_featured: nextFeatured } : p));
+
+    try {
+      await fetch(`${this.defaultWorkerUrl}/v1/admin/marketing-photos/star`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sessionId: photo.session_public_id,
+          isFeatured: nextFeatured === 1
+        })
+      });
+    } catch (err) {
+      console.warn('Failed to star photo:', err);
+    }
+  }
+
+  toggleSelectPhoto(id: string, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    const current = this.selectedMarketingIds();
+    if (current.includes(id)) {
+      this.selectedMarketingIds.set(current.filter(item => item !== id));
+    } else {
+      this.selectedMarketingIds.set([...current, id]);
+    }
+  }
+
+  selectAllMarketingPhotos() {
+    const allIds = this.marketingPhotos().map(p => p.id);
+    this.selectedMarketingIds.set(allIds);
+  }
+
+  clearSelectedMarketingPhotos() {
+    this.selectedMarketingIds.set([]);
+  }
+
+  async downloadSinglePhoto(photo: MarketingPhoto, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    const url = photo.signed_final_url;
+    if (!url) {
+      alert('Không tìm thấy link tải ảnh in!');
+      return;
+    }
+    const filename = `${photo.event_name || 'TachTach'}_${photo.session_code || photo.session_public_id}.jpg`;
+    try {
+      const resp = await fetch(url);
+      const blob = await resp.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  }
+
+  async downloadBatchZip() {
+    const selectedIds = this.selectedMarketingIds();
+    const targetPhotos = selectedIds.length > 0
+      ? this.marketingPhotos().filter(p => selectedIds.includes(p.id))
+      : this.marketingPhotos();
+
+    if (targetPhotos.length === 0) {
+      alert('Không có ảnh nào để tải về!');
+      return;
+    }
+
+    this.isBatchDownloading.set(true);
+    this.batchDownloadProgress.set(`0/${targetPhotos.length}`);
+
+    try {
+      const zip = new JSZip();
+      let completed = 0;
+
+      for (let i = 0; i < targetPhotos.length; i++) {
+        const photo = targetPhotos[i];
+        const url = photo.signed_final_url;
+        if (url) {
+          try {
+            const resp = await fetch(url);
+            if (resp.ok) {
+              const arrayBuffer = await resp.arrayBuffer();
+              const filename = `${photo.event_name || 'TachTach'}_${photo.session_code || photo.session_public_id}_${i + 1}.jpg`;
+              zip.file(filename, arrayBuffer);
+            }
+          } catch (fetchErr) {
+            console.warn('Failed to fetch photo for zip:', photo.id, fetchErr);
+          }
+        }
+        completed++;
+        this.batchDownloadProgress.set(`${completed}/${targetPhotos.length}`);
+        this.cdr.markForCheck();
+      }
+
+      this.batchDownloadProgress.set('Đang nén file ZIP...');
+      const content = await zip.generateAsync({ type: 'blob' });
+      const objUrl = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = `tach_tach_marketing_photos_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+      this.successMessage.set(`Đã tải về thành công ${completed} ảnh marketing!`);
+      setTimeout(() => this.successMessage.set(''), 4000);
+    } catch (zipErr: any) {
+      alert('Lỗi tạo file ZIP: ' + (zipErr?.message || zipErr));
+    } finally {
+      this.isBatchDownloading.set(false);
+      this.batchDownloadProgress.set('');
+      this.cdr.markForCheck();
+    }
+  }
+
+  openPhotoPreview(photo: MarketingPhoto) {
+    this.previewPhoto.set(photo);
+  }
+
+  closePhotoPreview() {
+    this.previewPhoto.set(null);
+  }
+
+  // ==========================================
+  // EVENTS & PHOTO GALLERY DRILLDOWN
+  // ==========================================
+  async fetchEvents() {
+    this.isLoadingEvents.set(true);
+    this.errorMessage.set('');
+    try {
+      const params = new URLSearchParams();
+      params.set('storeId', 'store_hp_01');
+      if (this.selectedEventMachineId()) {
+        params.set('machineId', this.selectedEventMachineId());
+      }
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/events?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && Array.isArray(data.events)) {
+          const rawEvents = data.events;
+          const normalizedEvents: BoothEvent[] = rawEvents.map((e: any) => ({
+            id: e.id,
+            public_id: e.public_id || e.id,
+            store_id: e.store_id || 'store_hp_01',
+            name: e.name || e.id,
+            date: e.date || (e.created_at ? e.created_at.slice(0, 10) : ''),
+            drive_folder_id: e.drive_folder_id || '',
+            total_sessions: Number(e.session_count ?? e.total_sessions ?? 0),
+            consented_sessions: Number(e.consented_count ?? e.consented_sessions ?? 0),
+            is_active: e.is_active !== undefined ? Number(e.is_active) : 1,
+            created_at: e.created_at || ''
+          }));
+          this.eventsList.set(normalizedEvents);
+        } else {
+          this.eventsList.set([]);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to fetch events:', err?.message || err);
+    } finally {
+      this.isLoadingEvents.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async selectEvent(evt: BoothEvent) {
+    this.selectedEvent.set(evt);
+    this.isLoadingEventSessions.set(true);
+    this.eventSessions.set([]);
+    this.selectedSession.set(null);
+
+    try {
+      const params = new URLSearchParams();
+      params.set('storeId', 'store_hp_01');
+      if (this.selectedEventMachineId()) {
+        params.set('machineId', this.selectedEventMachineId());
+      }
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/events/${encodeURIComponent(evt.id)}/sessions?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Accept': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.ok && Array.isArray(data.sessions)) {
+          const rawSessions = data.sessions;
+          const normalizedSessions: EventSession[] = rawSessions.map((s: any) => {
+            const finalPhoto = s.finalPhoto ? {
+              id: s.finalPhoto.id || `${s.id}_final`,
+              name: s.finalPhoto.name || `${s.id}_final.jpg`,
+              signedUrl: s.finalPhoto.mediaUrl || s.finalPhoto.downloadUrl || s.finalPhoto.signedUrl || '',
+              signedThumbUrl: s.finalPhoto.thumbnailUrl || s.finalPhoto.mediaUrl || s.finalPhoto.signedThumbUrl || ''
+            } : null;
+
+            const shots = Array.isArray(s.shots) ? s.shots.map((sh: any, idx: number) => ({
+              id: sh.id || `${s.id}_shot_${idx + 1}`,
+              name: sh.name || `Shot ${idx + 1}`,
+              signedUrl: sh.mediaUrl || sh.downloadUrl || sh.signedUrl || '',
+              signedThumbUrl: sh.thumbnailUrl || sh.mediaUrl || sh.signedThumbUrl || ''
+            })) : [];
+
+            const btsVideo = s.btsVideo ? {
+              id: s.btsVideo.id || `${s.id}_bts`,
+              name: s.btsVideo.name || 'BTS Video',
+              signedUrl: s.btsVideo.mediaUrl || s.btsVideo.downloadUrl || s.btsVideo.signedUrl || '',
+              signedThumbUrl: s.btsVideo.thumbnailUrl || ''
+            } : null;
+
+            return {
+              id: s.id,
+              session_public_id: s.id,
+              session_code: s.sessionCode || s.session_code || (s.id ? `#ses_${s.id.slice(4, 12)}` : ''),
+              guest_name: s.guestName || s.guest_name || '',
+              photo_usage_consent: s.photoUsageConsent === 1 || s.photo_usage_consent === 1 ? 1 : 0,
+              created_at: s.createdAt || s.created_at || '',
+              drive_session_folder_id: s.driveFolderId || s.drive_folder_id || '',
+              finalPhoto,
+              shots,
+              btsVideo,
+              guestShareUrl: s.guestShareUrl || s.guest_share_url || ''
+            };
+          });
+          this.eventSessions.set(normalizedSessions);
+        }
+      }
+    } catch (err: any) {
+      console.warn('Failed to fetch event sessions:', err?.message || err);
+    } finally {
+      this.isLoadingEventSessions.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  backToEventsList() {
+    this.selectedEvent.set(null);
+    this.eventSessions.set([]);
+    this.selectedSession.set(null);
+  }
+
+  openSessionDetail(s: EventSession) {
+    this.selectedSession.set(s);
+  }
+
+  closeSessionDetail() {
+    this.selectedSession.set(null);
+  }
+
+  openEventQr(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    this.eventQrModal.set(evt);
+  }
+
+  closeEventQr() {
+    this.eventQrModal.set(null);
+  }
+
+  getEventShareUrl(evt: BoothEvent): string {
+    return `https://tachtach.event-vn.com/gallery?id=${encodeURIComponent(evt.public_id)}`;
+  }
+
+  getEventQrUrl(evt: BoothEvent): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(this.getEventShareUrl(evt))}`;
+  }
+
+  encodeURIComponent(val: string): string {
+    return encodeURIComponent(val || '');
+  }
+
+  copyEventShareUrl(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    const url = this.getEventShareUrl(evt);
+    navigator.clipboard.writeText(url);
+    this.successMessage.set('Đã sao chép liên kết thư viện ảnh sự kiện!');
+    setTimeout(() => this.successMessage.set(''), 3000);
+  }
+
+  copyGuestShareUrl(url: string, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    navigator.clipboard.writeText(url);
+    this.successMessage.set('Đã sao chép liên kết xem ảnh của khách!');
+    setTimeout(() => this.successMessage.set(''), 3000);
+  }
+
+  // ==========================================
+  // MACHINE CRUD & PAPER MANAGEMENT
+  // ==========================================
   openCreateMachineModal() {
     this.isCreateMode.set(true);
     this.editForm.set({
@@ -457,11 +947,9 @@ export class Admin implements OnInit, OnDestroy {
     } catch {
       // Fallback
     } finally {
-      // Find machine to get its license prefix if any
       const target = this.machines().find(m => m.id === machineId);
       const prefix = target?.license_key_prefix;
 
-      // Remove machine and any matching keys from managed machine IDs
       const currentIds = this.getManagedMachineIds().filter(id => {
         if (id === machineId) return false;
         if (prefix && (id === prefix || id.startsWith(prefix))) return false;
@@ -496,10 +984,8 @@ export class Admin implements OnInit, OnDestroy {
         setTimeout(() => this.successMessage.set(''), 4000);
       }
 
-      // Optimistic local update
       this.machines.update(list => list.map(m => m.id === machineId ? { ...m, paper_remaining: 700 } : m));
     } catch {
-      // Optimistic fallback
       this.machines.update(list => list.map(m => m.id === machineId ? { ...m, paper_remaining: 700 } : m));
     } finally {
       this.resettingMachineId.set(null);
@@ -554,11 +1040,17 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // SETTINGS & TELEGRAM / GOOGLE DRIVE ACTIONS
+  // SETTINGS & TAB SWITCHING
   // ==========================================
-  switchTab(tab: 'monitoring' | 'revenue' | 'settings') {
+  switchTab(tab: 'monitoring' | 'revenue' | 'marketing' | 'events' | 'settings') {
     this.activeTab.set(tab);
-    if (tab === 'settings') {
+    if (tab === 'revenue') {
+      this.fetchCloudflareDashboard();
+    } else if (tab === 'marketing') {
+      this.fetchMarketingPhotos();
+    } else if (tab === 'events') {
+      this.fetchEvents();
+    } else if (tab === 'settings') {
       this.loadSettings();
     }
   }
