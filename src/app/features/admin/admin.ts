@@ -164,6 +164,24 @@ export class Admin implements OnInit, OnDestroy {
   selectedSession = signal<EventSession | null>(null);
   eventQrModal = signal<BoothEvent | null>(null);
 
+  // Modal State for Editing / Creating Event
+  isEventModalOpen = signal<boolean>(false);
+  isCreateEventMode = signal<boolean>(true);
+  isSavingEvent = signal<boolean>(false);
+  eventForm = signal<{
+    id: string;
+    name: string;
+    machine_id: string;
+    drive_folder_id: string;
+    is_active: boolean;
+  }>({
+    id: '',
+    name: '',
+    machine_id: '',
+    drive_folder_id: '',
+    is_active: true
+  });
+
   // Modal State for Editing / Creating Machine
   isMachineModalOpen = signal<boolean>(false);
   isCreateMode = signal<boolean>(false);
