@@ -117,6 +117,7 @@
                        class="main-photo-video"
                        controls
                        playsinline
+                       loop
                        preload="metadata"
                        [attr.aria-label]="item.photo.name || 'Video sự kiện'"
                        (click)="$event.stopPropagation()"
@@ -179,6 +180,7 @@
                  preload="metadata"
                  muted
                  playsinline
+                 loop
                  class="grid-video-preview"></video>
         </ng-container>
         <ng-template #gridImg>
@@ -207,6 +209,7 @@
                      preload="metadata"
                      muted
                      playsinline
+                     loop
                      class="strip-video-preview"></video>
             </ng-container>
             <ng-template #stripImg>
@@ -302,7 +305,7 @@
              [class.grid-item--new]="item.photo.isNew"
              (click)="openSessionByPhoto(item.photo, item.index)">
           <ng-container *ngIf="isVideo(item.photo); else eventImgLeft">
-            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline class="grid-video-preview"></video>
+            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline loop class="grid-video-preview"></video>
           </ng-container>
           <ng-template #eventImgLeft>
             <img [src]="getPreviewSrc(item.photo)" [alt]="item.photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(item.photo)" />
@@ -329,7 +332,7 @@
              [class.grid-item--new]="item.photo.isNew"
              (click)="openSessionByPhoto(item.photo, item.index)">
           <ng-container *ngIf="isVideo(item.photo); else eventImgRight">
-            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline class="grid-video-preview"></video>
+            <video [src]="getVideoPreviewSrc(item.photo)" preload="metadata" muted playsinline loop class="grid-video-preview"></video>
           </ng-container>
           <ng-template #eventImgRight>
             <img [src]="getPreviewSrc(item.photo)" [alt]="item.photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(item.photo)" />
@@ -371,7 +374,7 @@
         <!-- Ảnh chính của phiên trong Feed -->
         <div class="feed-card-media">
           <ng-container *ngIf="isVideo(photo); else feedImg">
-            <video [src]="getVideoPreviewSrc(photo)" preload="metadata" controls playsinline class="feed-video"></video>
+            <video [src]="getVideoPreviewSrc(photo)" preload="metadata" controls playsinline loop class="feed-video"></video>
           </ng-container>
           <ng-template #feedImg>
             <img [src]="getPreviewSrc(photo)" [alt]="photo.name || 'Ảnh sự kiện'" loading="lazy" referrerpolicy="no-referrer" (error)="onThumbError(photo)" />
@@ -561,6 +564,7 @@
                class="lightbox-video"
                controls
                playsinline
+               loop
                preload="metadata"
                [attr.aria-label]="media?.name || 'Video sự kiện'"
                (error)="onMainError(media)"></video>
@@ -605,6 +609,7 @@
                preload="metadata"
                muted
                playsinline
+               loop
                class="lb-strip-video-preview"></video>
       </ng-container>
       <ng-template #lbStripImg>
