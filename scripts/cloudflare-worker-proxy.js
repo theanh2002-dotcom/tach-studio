@@ -104,6 +104,10 @@ async function proxyOpaqueMedia(request, url, route, env, ctx) {
 
   if (isPreviewImage) {
     upstream = await fetchPreviewImage(request, payload, size, env);
+    if (!upstream || isHtmlOrErrorResponse(upstream)) {
+      cancelBody(upstream);
+      upstream = await fetchDriveBinary(request, payload.fileId, payload.kind, env);
+    }
   } else {
     upstream = await fetchDriveBinary(request, payload.fileId, payload.kind, env);
   }
@@ -139,7 +143,8 @@ async function proxyOpaqueMedia(request, url, route, env, ctx) {
     headers.set('Cache-Control', 'no-store');
   }
 
-  const response = withCors(new Response(upstream.body, {
+  const isNullBodyStatus = upstream.status === 204 || upstream.status === 304;
+  const response = withCors(new Response(isNullBodyStatus ? null : upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers
@@ -354,7 +359,8 @@ async function proxyOpaqueUpload(request, route, env) {
     copyHeader(upstream.headers, headers, name);
   }
   headers.set('Cache-Control', 'no-store');
-  return withCors(new Response(upstream.body, {
+  const isNullBodyStatus = upstream.status === 204 || upstream.status === 304;
+  return withCors(new Response(isNullBodyStatus ? null : upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
     headers
@@ -377,7 +383,8 @@ async function proxyLegacyMedia(request, url, env, ctx) {
       headers.delete('location');
       headers.delete('set-cookie');
       headers.set('Cache-Control', 'no-store');
-      return withCors(new Response(upstream.body, {
+      const isNullBodyStatus = upstream.status === 204 || upstream.status === 304;
+      return withCors(new Response(isNullBodyStatus ? null : upstream.body, {
         status: upstream.status,
         statusText: upstream.statusText,
         headers
@@ -415,7 +422,8 @@ async function proxyLegacyMedia(request, url, env, ctx) {
     headers.set('Cache-Control', isFileProxy
       ? 'no-store'
       : 'public, max-age=2592000, s-maxage=2592000');
-    response = new Response(upstream.body, {
+    const isNullBodyStatus = upstream.status === 204 || upstream.status === 304;
+    response = new Response(isNullBodyStatus ? null : upstream.body, {
       status: upstream.status,
       statusText: upstream.statusText,
       headers
@@ -522,19 +530,26 @@ function isAllowedOrigin(origin) {
 }
 
 function withCors(response, request) {
+  const headers = new Headers(response.headers);
   const origin = request.headers.get('Origin');
   if (origin && isAllowedOrigin(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-    response.headers.set('Vary', 'Origin');
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Vary', 'Origin');
   } else {
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    headers.set('Access-Control-Allow-Origin', '*');
   }
-  response.headers.set('Access-Control-Allow-Methods', 'GET, HEAD, PUT, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Range, If-Range, If-None-Match, If-Modified-Since, Content-Type, Content-Range, X-Upload-Content-Type, X-Upload-Content-Length');
-  response.headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
-  response.headers.set('Referrer-Policy', 'no-referrer');
-  response.headers.set('X-Content-Type-Options', 'nosniff');
-  return response;
+  headers.set('Access-Control-Allow-Methods', 'GET, HEAD, PUT, OPTIONS');
+  headers.set('Access-Control-Allow-Headers', 'Range, If-Range, If-None-Match, If-Modified-Since, Content-Type, Content-Range, X-Upload-Content-Type, X-Upload-Content-Length');
+  headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  headers.set('Referrer-Policy', 'no-referrer');
+  headers.set('X-Content-Type-Options', 'nosniff');
+
+  const isNullBodyStatus = response.status === 204 || response.status === 304;
+  return new Response(isNullBodyStatus ? null : response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
 }
 
 function json(body, status) {

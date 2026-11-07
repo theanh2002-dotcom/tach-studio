@@ -1472,6 +1472,7 @@ export class EventGallery implements OnInit, OnDestroy {
   getSessionPhotoSrc(photo: GalleryPhoto | null | undefined): string {
     if (!photo) return '';
     if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
+    if (photo._mainError) return this.driveService.getDownloadUrl(photo);
     return this.getLightboxSrc(photo);
   }
 
@@ -1479,6 +1480,7 @@ export class EventGallery implements OnInit, OnDestroy {
   getPreviewSrc(photo: GalleryPhoto): string {
     if (!photo) return '';
     if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
+    if (photo._thumbError || photo._mainError) return this.driveService.getDownloadUrl(photo);
     if (this.isSingleSession()) return this.getLightboxSrc(photo);
     return photo.thumbnailUrl || this.getLightboxSrc(photo);
   }
@@ -1494,7 +1496,7 @@ export class EventGallery implements OnInit, OnDestroy {
     if (!photo) return '';
     if (this.isVideo(photo)) return this.VIDEO_FALLBACK_SVG;
     if (photo.mediaId.startsWith('demo')) return photo.thumbnailUrl;
-    if (photo._thumbError) return this.driveService.getHighResUrl(photo, 400);
+    if (photo._thumbError) return this.driveService.getDownloadUrl(photo);
     return this.driveService.getThumbnailUrl(photo);
   }
 
