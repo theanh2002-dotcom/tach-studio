@@ -650,9 +650,8 @@ export class EventGallery implements OnInit, OnDestroy {
           if (!url) continue;
 
           try {
-            const res = await fetch(url);
-            if (res.ok) {
-              const blob = await res.blob();
+            const blob = await this.fetchValidMediaBlob(photo);
+            if (blob) {
               let fileName = photo.name?.trim() || (this.isVideo(photo) ? `video_${i + 1}.mp4` : `photo_${i + 1}.jpg`);
               if (!fileName.includes('.')) fileName += this.isVideo(photo) ? '.mp4' : '.jpg';
               const mimeType = this.getShareMimeType(photo);
@@ -730,9 +729,8 @@ export class EventGallery implements OnInit, OnDestroy {
         try {
           let file = this.preparedShareFile;
           if (!file || this.preparedShareMediaId !== photo.mediaId) {
-            const res = await fetch(url);
-            if (res.ok) {
-              const blob = await res.blob();
+            const blob = await this.fetchValidMediaBlob(photo);
+            if (blob) {
               const mimeType = this.getShareMimeType(photo);
               file = new File([blob], fileName, { type: mimeType });
               this.preparedShareFile = file;
@@ -827,9 +825,8 @@ export class EventGallery implements OnInit, OnDestroy {
         seenNames.set(baseName, count + 1);
 
         try {
-          const res = await fetch(url);
-          if (res.ok) {
-            const blob = await res.blob();
+          const blob = await this.fetchValidMediaBlob(photo);
+          if (blob) {
             zip.file(finalName, blob);
           }
         } catch (fetchErr) {
@@ -899,13 +896,9 @@ export class EventGallery implements OnInit, OnDestroy {
     this.sharePrepareAbort = controller;
     this.preparedShareMediaId = photo.mediaId;
 
-    void fetch(url, { signal: controller.signal })
-      .then(response => {
-        if (!response.ok) throw new Error(`Download request failed with status ${response.status}`);
-        return response.blob();
-      })
+    void this.fetchValidMediaBlob(photo, controller.signal)
       .then(blob => {
-        if (controller.signal.aborted || this.sharePrepareAbort !== controller) return;
+        if (!blob || controller.signal.aborted || this.sharePrepareAbort !== controller) return;
 
         const mimeType = this.getShareMimeType(photo);
         const fileName = photo.name?.trim() || (this.isVideo(photo) ? 'event-media.mp4' : 'event-media.jpg');
@@ -921,6 +914,30 @@ export class EventGallery implements OnInit, OnDestroy {
           console.warn('[Gallery] Could not prepare image for sharing:', error);
         }
       });
+  }
+
+  private async fetchValidMediaBlob(photo: GalleryPhoto, signal?: AbortSignal): Promise<Blob | null> {
+    const candidates = [
+      this.driveService.getDownloadUrl(photo),
+      !this.isVideo(photo) ? (photo.lightboxUrl || photo.mediaUrl) : null
+    ].filter((u): u is string => Boolean(u));
+
+    for (const candidateUrl of candidates) {
+      try {
+        const res = await fetch(candidateUrl, signal ? { signal } : undefined);
+        if (!res.ok) continue;
+        const ct = (res.headers.get('content-type') || '').toLowerCase();
+        if (ct.includes('text/html') || ct.includes('application/json') || ct.includes('application/xhtml')) {
+          continue;
+        }
+        const blob = await res.blob();
+        if (blob.size < 256) continue;
+        return blob;
+      } catch (err) {
+        if (this.isShareAbortError(err) || signal?.aborted) throw err;
+      }
+    }
+    return null;
   }
 
   private getShareMimeType(photo: GalleryPhoto): string {

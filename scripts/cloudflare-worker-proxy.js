@@ -1,3 +1,10 @@
+const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const DRIVE_FILES_API = 'https://www.googleapis.com/drive/v3/files';
+const TOKEN_REFRESH_SKEW_MS = 60_000;
+
+let cachedGoogleToken = null;
+let tokenRefreshPromise = null;
+
 function getCandidateSecrets(env) {
   const list = [
     env?.MEDIA_TOKEN_SECRET,
@@ -10,20 +17,22 @@ function getCandidateSecrets(env) {
 /**
  * Trusted media proxy for the public gallery.
  *
- * The Worker is allowed to know the Google Drive implementation. The public
- * gallery is not: new requests use /media/<encrypted-token>, so Drive ids and
- * provider URLs never need to be returned by the gallery API.
+ * Uses authenticated Google Drive API v3 (?alt=media) for binary downloads and
+ * video streaming so public guests never hit Google Drive's anonymous
+ * drive.google.com/uc "Quota exceeded" HTML block, while keeping fast resized
+ * WebP thumbnails/previews on lh3.googleusercontent.com with automatic fallback.
  *
- * Required secret:
- *   MEDIA_TOKEN_SECRET = the same 32-byte secret used by api/_media-token.js
- *
- * Legacy /uc and /d requests are kept temporarily so older QR links continue
- * to work while the gallery frontend migrates to encrypted media tokens.
+ * Required secrets on Cloudflare Worker (image-photobooth):
+ *   MEDIA_TOKEN_SECRET
+ *   GOOGLE_CLIENT_ID
+ *   GOOGLE_CLIENT_SECRET
+ *   GOOGLE_REFRESH_TOKEN
  */
 
 const ALLOWED_ORIGINS = new Set([
-  'https://tanh.event-vn.com',
+  'https://pica.photobooth.event-vn.com',
   'https://tachtach.event-vn.com',
+  'https://tanh.event-vn.com',
   'https://luxe-agency-vn.vercel.app',
   'http://localhost:4200',
   'http://127.0.0.1:4200'
@@ -50,9 +59,8 @@ export default {
         return await proxyOpaqueMedia(request, url, mediaRoute, env, ctx);
       }
 
-      // Compatibility for old gallery bundles and QR links. This branch may
-      // still contain a Drive id because it is deliberately transitional.
-      return await proxyLegacyMedia(request, url, ctx);
+      // Compatibility for old gallery bundles and QR links.
+      return await proxyLegacyMedia(request, url, env, ctx);
     } catch (error) {
       // Never expose upstream/provider errors to the public site.
       console.error('[media-proxy] request failed:', error?.message || error);
@@ -64,14 +72,7 @@ export default {
 async function proxyOpaqueMedia(request, url, route, env, ctx) {
   const cache = typeof caches !== 'undefined' && caches.default ? caches.default : null;
   const cacheKey = new Request(url.toString(), { method: 'GET' });
-  const shouldCache = !route.download && request.method === 'GET' && !request.headers.has('Range');
-
-  if (cache && shouldCache) {
-    const cachedResponse = await cache.match(cacheKey);
-    if (cachedResponse) {
-      return withCors(cachedResponse, request);
-    }
-  }
+  const isThumbnail = url.searchParams.get('variant') === 'thumbnail';
 
   const secrets = getCandidateSecrets(env);
   if (secrets.length === 0) return withCors(json({ error: 'Media is temporarily unavailable' }, 503), request);
@@ -88,15 +89,31 @@ async function proxyOpaqueMedia(request, url, route, env, ctx) {
     return withCors(json({ error: 'Media not found' }, 404), request);
   }
 
+  const isPreviewImage = !route.download && (payload.kind === 'image' || isThumbnail);
+  const shouldEdgeCache = isPreviewImage && request.method === 'GET' && !request.headers.has('Range');
+
+  if (cache && shouldEdgeCache) {
+    const cachedResponse = await cache.match(cacheKey);
+    if (cachedResponse && !isHtmlOrErrorResponse(cachedResponse)) {
+      return withCors(cachedResponse, request);
+    }
+  }
+
   const size = clampImageSize(url.searchParams.get('size'));
-  const isThumbnail = url.searchParams.get('variant') === 'thumbnail';
-  const targetUrl = buildOpaqueTarget(payload, route.download, isThumbnail, size);
-  const upstreamHeaders = forwardRangeHeaders(request.headers);
-  const upstream = await fetch(targetUrl, {
-    method: request.method,
-    headers: upstreamHeaders,
-    redirect: 'follow'
-  });
+  let upstream = null;
+
+  if (isPreviewImage) {
+    upstream = await fetchPreviewImage(request, payload, size, env);
+  } else {
+    upstream = await fetchDriveBinary(request, payload.fileId, payload.kind, env);
+  }
+
+  if (!upstream || isHtmlOrErrorResponse(upstream)) {
+    cancelBody(upstream);
+    const errorRes = json({ error: 'Media is temporarily unavailable' }, 502);
+    errorRes.headers.set('Cache-Control', 'no-store');
+    return withCors(errorRes, request);
+  }
 
   const headers = new Headers();
   copyHeader(upstream.headers, headers, 'content-type');
@@ -107,16 +124,18 @@ async function proxyOpaqueMedia(request, url, route, env, ctx) {
   copyHeader(upstream.headers, headers, 'last-modified');
 
   if (payload.kind === 'video' && !isThumbnail) {
-    headers.set('Content-Type', payload.mimeType || 'video/mp4');
-    headers.set('Cache-Control', 'no-store');
+    headers.set('Content-Type', payload.mimeType || upstream.headers.get('content-type') || 'video/mp4');
+    headers.set('Cache-Control', 'public, max-age=3600');
     headers.set('Accept-Ranges', 'bytes');
   } else {
     headers.set('Cache-Control', 'public, max-age=2592000, s-maxage=2592000');
   }
 
   if (route.download) {
+    const fileName = safeFileName(payload.name, payload.kind);
+    const asciiFileName = fileName.replace(/[^\x20-\x7E]/g, '_').replace(/["\\]/g, '_');
     headers.set('Content-Type', 'application/octet-stream');
-    headers.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeFileName(payload.name, payload.kind))}`);
+    headers.set('Content-Disposition', `attachment; filename="${asciiFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`);
     headers.set('Cache-Control', 'no-store');
   }
 
@@ -126,11 +145,186 @@ async function proxyOpaqueMedia(request, url, route, env, ctx) {
     headers
   }), request);
 
-  if (cache && shouldCache && ctx && upstream.status === 200) {
+  if (cache && shouldEdgeCache && ctx && upstream.status === 200) {
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
   }
 
   return response;
+}
+
+async function fetchPreviewImage(request, payload, size, env) {
+  const lh3Url = `https://lh3.googleusercontent.com/d/${encodeURIComponent(payload.fileId)}=s${size}-rw`;
+  try {
+    const res = await fetch(lh3Url, {
+      method: request.method,
+      headers: forwardRangeHeaders(request.headers),
+      redirect: 'follow'
+    });
+    if (!isHtmlOrErrorResponse(res)) {
+      return res;
+    }
+    cancelBody(res);
+  } catch (err) {
+    console.warn('[media-proxy] lh3 preview failed, falling back to Drive API:', err?.message || err);
+  }
+
+  if (payload.kind === 'image' && hasGoogleOAuth(env)) {
+    return fetchDriveApiMedia(request, payload.fileId, env);
+  }
+  return null;
+}
+
+async function fetchDriveBinary(request, fileId, kind, env) {
+  // Tier 1: Authenticated Google Drive API v3 (?alt=media) — completely immune to anonymous uc?export=download quota
+  if (hasGoogleOAuth(env)) {
+    const apiRes = await fetchDriveApiMedia(request, fileId, env);
+    if (apiRes && !isHtmlOrErrorResponse(apiRes)) {
+      return apiRes;
+    }
+    cancelBody(apiRes);
+  }
+
+  // Tier 2: Direct Google CDN original image stream (=d / =s0) for photos
+  if (kind === 'image' || kind === 'unknown') {
+    for (const suffix of ['=d', '=s0']) {
+      try {
+        const cdnRes = await fetch(`https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}${suffix}`, {
+          method: request.method,
+          headers: forwardRangeHeaders(request.headers),
+          redirect: 'follow'
+        });
+        if (!isHtmlOrErrorResponse(cdnRes)) {
+          return cdnRes;
+        }
+        cancelBody(cdnRes);
+      } catch {
+        // Continue to next fallback
+      }
+    }
+  }
+
+  // Tier 3: Last-resort anonymous download endpoint (accepted ONLY if not HTML quota error)
+  try {
+    const anonRes = await fetch(
+      `https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`,
+      {
+        method: request.method,
+        headers: forwardRangeHeaders(request.headers),
+        redirect: 'follow'
+      }
+    );
+    if (!isHtmlOrErrorResponse(anonRes)) {
+      return anonRes;
+    }
+    cancelBody(anonRes);
+  } catch {
+    // Ignore and return null below
+  }
+
+  return null;
+}
+
+async function fetchDriveApiMedia(request, fileId, env) {
+  const mediaUrl = `${DRIVE_FILES_API}/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`;
+  try {
+    let accessToken = await getGoogleAccessToken(env, false);
+    let headers = forwardRangeHeaders(request.headers);
+    headers.set('Authorization', `Bearer ${accessToken}`);
+
+    let res = await fetch(mediaUrl, {
+      method: request.method,
+      headers,
+      redirect: 'follow'
+    });
+
+    if (res.status === 401) {
+      cancelBody(res);
+      accessToken = await getGoogleAccessToken(env, true);
+      headers = forwardRangeHeaders(request.headers);
+      headers.set('Authorization', `Bearer ${accessToken}`);
+      res = await fetch(mediaUrl, {
+        method: request.method,
+        headers,
+        redirect: 'follow'
+      });
+    }
+
+    return res;
+  } catch (err) {
+    console.error('[media-proxy] Drive API v3 media fetch failed:', err?.message || err);
+    return null;
+  }
+}
+
+function hasGoogleOAuth(env) {
+  return Boolean(
+    env?.GOOGLE_CLIENT_ID &&
+    env?.GOOGLE_CLIENT_SECRET &&
+    env?.GOOGLE_REFRESH_TOKEN
+  );
+}
+
+async function getGoogleAccessToken(env, forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && cachedGoogleToken && cachedGoogleToken.expiresAtMs - now > TOKEN_REFRESH_SKEW_MS) {
+    return cachedGoogleToken.accessToken;
+  }
+
+  if (!forceRefresh && tokenRefreshPromise) {
+    return tokenRefreshPromise;
+  }
+
+  tokenRefreshPromise = (async () => {
+    const body = new URLSearchParams({
+      client_id: String(env.GOOGLE_CLIENT_ID).trim(),
+      client_secret: String(env.GOOGLE_CLIENT_SECRET).trim(),
+      refresh_token: String(env.GOOGLE_REFRESH_TOKEN).trim(),
+      grant_type: 'refresh_token'
+    });
+
+    const response = await fetch(GOOGLE_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+
+    if (!response.ok) {
+      throw new Error(`Google OAuth token refresh failed (${response.status})`);
+    }
+
+    const data = await response.json();
+    if (!data?.access_token) {
+      throw new Error('Google OAuth response missing access_token');
+    }
+
+    const expiresInSec = Math.max(60, Number(data.expires_in || 3600));
+    cachedGoogleToken = {
+      accessToken: data.access_token,
+      expiresAtMs: Date.now() + expiresInSec * 1000
+    };
+    return cachedGoogleToken.accessToken;
+  })();
+
+  try {
+    return await tokenRefreshPromise;
+  } finally {
+    tokenRefreshPromise = null;
+  }
+}
+
+function isHtmlOrErrorResponse(res) {
+  if (!res) return true;
+  if (res.status >= 400) return true;
+  const contentType = (res.headers.get('content-type') || '').toLowerCase();
+  return contentType.includes('text/html') || contentType.includes('application/xhtml');
+}
+
+function cancelBody(res) {
+  try {
+    res?.body?.cancel?.();
+  } catch {
+    // Ignore stream cancellation errors
+  }
 }
 
 async function proxyOpaqueUpload(request, route, env) {
@@ -167,28 +361,54 @@ async function proxyOpaqueUpload(request, route, env) {
   }), request);
 }
 
-function buildOpaqueTarget(payload, download, isThumbnail, size) {
-  if (payload.kind === 'video' || download) {
-    return `https://drive.google.com/uc?export=download&id=${encodeURIComponent(payload.fileId)}`;
-  }
-  return `https://lh3.googleusercontent.com/d/${encodeURIComponent(payload.fileId)}=s${size}-rw`;
-}
-
-async function proxyLegacyMedia(request, url, ctx) {
+async function proxyLegacyMedia(request, url, env, ctx) {
   const isFileProxy = url.pathname.startsWith('/uc');
+  if (isFileProxy) {
+    const legacyId = url.searchParams.get('id');
+    if (isSafeDriveId(legacyId)) {
+      const upstream = await fetchDriveBinary(request, legacyId, 'unknown', env);
+      if (!upstream || isHtmlOrErrorResponse(upstream)) {
+        cancelBody(upstream);
+        const errorRes = json({ error: 'Media is temporarily unavailable' }, 502);
+        errorRes.headers.set('Cache-Control', 'no-store');
+        return withCors(errorRes, request);
+      }
+      const headers = new Headers(upstream.headers);
+      headers.delete('location');
+      headers.delete('set-cookie');
+      headers.set('Cache-Control', 'no-store');
+      return withCors(new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers
+      }), request);
+    }
+  }
+
   const targetUrl = isFileProxy
     ? `https://drive.google.com${url.pathname}${url.search}`
     : `https://lh3.googleusercontent.com${url.pathname}${url.search}`;
-  const cache = caches.default;
+  const cache = typeof caches !== 'undefined' && caches.default ? caches.default : null;
   const cacheKey = new Request(url.toString(), { method: 'GET' });
 
-  let response = isFileProxy ? null : await cache.match(cacheKey);
+  let response = isFileProxy || !cache ? null : await cache.match(cacheKey);
+  if (response && isHtmlOrErrorResponse(response)) {
+    response = null;
+  }
+
   if (!response) {
     const upstream = await fetch(targetUrl, {
       method: request.method,
       headers: forwardRangeHeaders(request.headers),
       redirect: 'follow'
     });
+    if (isHtmlOrErrorResponse(upstream)) {
+      cancelBody(upstream);
+      const errorRes = json({ error: 'Media is temporarily unavailable' }, 502);
+      errorRes.headers.set('Cache-Control', 'no-store');
+      return withCors(errorRes, request);
+    }
+
     const headers = new Headers(upstream.headers);
     headers.delete('location');
     headers.delete('set-cookie');
@@ -201,7 +421,7 @@ async function proxyLegacyMedia(request, url, ctx) {
       headers
     });
 
-    if (!isFileProxy && request.method === 'GET' && !request.headers.has('Range') && upstream.status === 200) {
+    if (!isFileProxy && cache && ctx && request.method === 'GET' && !request.headers.has('Range') && upstream.status === 200) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()));
     }
   }
@@ -286,9 +506,24 @@ function copyHeader(source, target, name) {
   if (value) target.set(name, value);
 }
 
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return protocol === 'https:' && (
+      hostname === 'event-vn.com' ||
+      hostname.endsWith('.event-vn.com') ||
+      hostname.endsWith('.vercel.app')
+    );
+  } catch {
+    return false;
+  }
+}
+
 function withCors(response, request) {
   const origin = request.headers.get('Origin');
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     response.headers.set('Access-Control-Allow-Origin', origin);
     response.headers.set('Vary', 'Origin');
   } else {

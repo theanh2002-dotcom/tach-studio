@@ -8,6 +8,7 @@ const MEDIA_PROXY_URL = process.env.PUBLIC_MEDIA_PROXY_URL || 'https://image-pho
 const GALLERY_RESOLVER_URL = process.env.GALLERY_RESOLVER_URL || 'https://tanhbooth-api.laihoanganh456.workers.dev';
 const GALLERY_RESOLVER_SECRET = process.env.GALLERY_RESOLVER_SECRET || 'theanh2002';
 const ALLOWED_ORIGINS = new Set([
+  'https://pica.photobooth.event-vn.com',
   'https://tachtach.event-vn.com',
   'https://tanh.event-vn.com',
   'https://luxe-agency-vn.vercel.app',
