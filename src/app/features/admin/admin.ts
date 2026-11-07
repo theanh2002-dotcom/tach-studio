@@ -80,6 +80,8 @@ export interface BoothEvent {
   id: string;
   public_id: string;
   store_id: string;
+  machine_id?: string;
+  machine_name?: string;
   name: string;
   date: string;
   drive_folder_id: string;
@@ -181,6 +183,8 @@ export class Admin implements OnInit, OnDestroy {
     drive_folder_id: '',
     is_active: true
   });
+
+
 
   // Modal State for Editing / Creating Machine
   isMachineModalOpen = signal<boolean>(false);
@@ -693,6 +697,8 @@ export class Admin implements OnInit, OnDestroy {
             id: e.id,
             public_id: e.public_id || e.id,
             store_id: e.store_id || 'store_hp_01',
+            machine_id: e.machine_id || '',
+            machine_name: e.machine_name || this.getMachineName(e.machine_id) || '',
             name: e.name || e.id,
             date: e.date || (e.created_at ? e.created_at.slice(0, 10) : ''),
             drive_folder_id: e.drive_folder_id || '',
@@ -831,6 +837,123 @@ export class Admin implements OnInit, OnDestroy {
     navigator.clipboard.writeText(url);
     this.successMessage.set('Đã sao chép liên kết xem ảnh của khách!');
     setTimeout(() => this.successMessage.set(''), 3000);
+  }
+
+  getMachineName(machineId?: string): string {
+    if (!machineId) return '';
+    const found = this.machines().find(m => m.id === machineId);
+    return found ? found.name : machineId;
+  }
+
+  // ==========================================
+  // EVENT CRUD (CREATE, UPDATE, DELETE)
+  // ==========================================
+  openCreateEventModal(defaultMachineId?: string) {
+    this.isCreateEventMode.set(true);
+    const mList = this.machines();
+    const fallbackMachine = defaultMachineId || this.selectedEventMachineId() || (mList.length > 0 ? mList[0].id : '');
+    this.eventForm.set({
+      id: '',
+      name: '',
+      machine_id: fallbackMachine,
+      drive_folder_id: '',
+      is_active: true
+    });
+    this.isEventModalOpen.set(true);
+  }
+
+  openEditEventModal(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    this.isCreateEventMode.set(false);
+    this.eventForm.set({
+      id: evt.id,
+      name: evt.name,
+      machine_id: evt.machine_id || '',
+      drive_folder_id: evt.drive_folder_id || '',
+      is_active: evt.is_active === 1
+    });
+    this.isEventModalOpen.set(true);
+  }
+
+  closeEventModal() {
+    this.isEventModalOpen.set(false);
+  }
+
+  async saveEventModal() {
+    const form = this.eventForm();
+    const name = form.name.trim();
+    if (!name) {
+      alert('Vui lòng nhập Tên sự kiện!');
+      return;
+    }
+
+    this.isSavingEvent.set(true);
+    const isCreate = this.isCreateEventMode();
+    const endpoint = isCreate
+      ? `${this.defaultWorkerUrl}/v1/admin/events`
+      : `${this.defaultWorkerUrl}/v1/admin/events/${encodeURIComponent(form.id)}`;
+    const method = isCreate ? 'POST' : 'PUT';
+
+    try {
+      const response = await fetch(endpoint, {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: form.id || undefined,
+          name,
+          machineId: form.machine_id || undefined,
+          driveFolderId: form.drive_folder_id.trim() || undefined,
+          isActive: form.is_active ? 1 : 0,
+          storeId: 'store_hp_01'
+        })
+      });
+
+      if (response.ok) {
+        this.successMessage.set(isCreate ? 'Đã tạo sự kiện mới thành công!' : 'Đã cập nhật sự kiện thành công!');
+        setTimeout(() => this.successMessage.set(''), 3500);
+        this.isEventModalOpen.set(false);
+        await this.fetchEvents();
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        alert('Lưu sự kiện thất bại: ' + (errData.message || response.statusText));
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối máy chủ khi lưu sự kiện: ' + (e?.message || e));
+    } finally {
+      this.isSavingEvent.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async deleteEvent(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    if (!confirm(`Bạn có chắc chắn muốn xóa sự kiện "${evt.name}"? Dữ liệu sự kiện sẽ bị xóa khỏi hệ thống.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/events/${encodeURIComponent(evt.id)}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`
+        }
+      });
+      if (response.ok) {
+        this.successMessage.set(`Đã xóa sự kiện "${evt.name}" thành công!`);
+        setTimeout(() => this.successMessage.set(''), 3500);
+        if (this.selectedEvent()?.id === evt.id) {
+          this.selectedEvent.set(null);
+        }
+        await this.fetchEvents();
+      } else {
+        alert('Xóa sự kiện thất bại');
+      }
+    } catch (e: any) {
+      alert('Lỗi kết nối khi xóa sự kiện: ' + (e?.message || e));
+    }
   }
 
   // ==========================================
