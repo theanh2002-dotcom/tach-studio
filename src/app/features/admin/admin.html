@@ -112,13 +112,36 @@
       </button>
     </div>
 
+    <!-- Notice when today has 0 transactions (e.g. past midnight or early morning) -->
+    <div *ngIf="selectedRange() === 'today' && overview().today_sessions === 0"
+         class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900 shadow-sm">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">🌙</span>
+        <div>
+          <span class="font-bold">Hôm nay ({{ getTodayDateString() }}) chưa phát sinh lượt chụp mới.</span>
+          <span class="block text-amber-800/80 text-[11px] mt-0.5">Dữ liệu doanh thu hôm qua và các ngày trước vẫn được lưu an toàn trên hệ thống.</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" (click)="setRange('yesterday')"
+                class="px-3.5 py-1.5 bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+          <span>📅</span>
+          <span>Xem Hôm Qua</span>
+        </button>
+        <button type="button" (click)="setRange('all')"
+                class="px-3.5 py-1.5 bg-white hover:bg-amber-100/60 text-[#681423] border border-amber-300 font-bold rounded-xl transition-all">
+          Toàn Thời Gian
+        </button>
+      </div>
+    </div>
+
     <!-- KPI CARDS SUMMARY (Top of all tabs) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
       
       <!-- Card 1: Doanh thu -->
       <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Doanh Thu Thực Thu</span>
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold flex items-center gap-1.5"><span>Doanh Thu Thực Thu</span><span class="text-[10px] bg-[#FAF6F0] text-[#681423] font-bold px-2 py-0.5 rounded-full border border-[#E8DDD2]">{{ getRangeLabel(selectedRange()) }}</span></span>
           <span class="text-base">💵</span>
         </div>
         <div>
@@ -137,7 +160,7 @@
       <!-- Card 2: Lượt chụp -->
       <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Số Lượt Chụp</span>
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold flex items-center gap-1.5"><span>Số Lượt Chụp</span><span class="text-[10px] bg-[#FAF6F0] text-[#681423] font-bold px-2 py-0.5 rounded-full border border-[#E8DDD2]">{{ getRangeLabel(selectedRange()) }}</span></span>
           <span class="text-base">📸</span>
         </div>
         <div>
@@ -153,7 +176,7 @@
       <!-- Card 3: Số ảnh đã in -->
       <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Tổng Số Bản In</span>
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold flex items-center gap-1.5"><span>Tổng Số Bản In</span><span class="text-[10px] bg-[#FAF6F0] text-[#681423] font-bold px-2 py-0.5 rounded-full border border-[#E8DDD2]">{{ getRangeLabel(selectedRange()) }}</span></span>
           <span class="text-base">🖨️</span>
         </div>
         <div>
@@ -169,7 +192,7 @@
       <!-- Card 4: Cơ cấu tiền -->
       <div class="bg-white p-5 rounded-3xl border border-[#E8DDD2] shadow-sm flex flex-col justify-between">
         <div class="flex items-center justify-between mb-2">
-          <span class="text-xs text-[#2C1A1D]/70 font-semibold">Thanh Toán</span>
+          <span class="text-xs text-[#2C1A1D]/70 font-semibold flex items-center gap-1.5"><span>Cơ Cấu Thu</span><span class="text-[10px] bg-[#FAF6F0] text-[#681423] font-bold px-2 py-0.5 rounded-full border border-[#E8DDD2]">{{ getRangeLabel(selectedRange()) }}</span></span>
           <span class="text-base">💳</span>
         </div>
         <div class="space-y-1">
@@ -464,11 +487,14 @@
                 <td class="py-3 px-4 font-serif font-bold text-sm text-[#681423]">{{ formatVND(tx.total_amount) }}</td>
                 <td class="py-3 px-4 text-center font-bold">{{ tx.print_copies }} bản</td>
                 <td class="py-3 px-4">
-                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                        [ngClass]="tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') 
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                          : 'bg-emerald-50 text-emerald-700 border border-emerald-200'">
-                    {{ tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR') ? 'VietQR SePay' : 'Tiền Mặt' }}
+                  <span *ngIf="tx.payment_method === 'VOUCHER'" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                    🎟️ Voucher 100%
+                  </span>
+                  <span *ngIf="tx.payment_method !== 'VOUCHER' && (tx.payment_method.includes('SEPAY') || tx.payment_method.includes('QR'))" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    📱 VietQR SePay
+                  </span>
+                  <span *ngIf="tx.payment_method !== 'VOUCHER' && !tx.payment_method.includes('SEPAY') && !tx.payment_method.includes('QR')" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    💵 Tiền Mặt
                   </span>
                 </td>
                 <td class="py-3 px-4 text-center">

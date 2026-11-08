@@ -1235,6 +1235,26 @@ export class Admin implements OnInit, OnDestroy {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
   }
 
+  getRangeLabel(range: string): string {
+    switch (range) {
+      case 'today': return 'Hôm nay';
+      case 'yesterday': return 'Hôm qua';
+      case '7d': return '7 ngày qua';
+      case '30d': return '30 ngày qua';
+      case 'all': return 'Toàn thời gian';
+      case 'custom': return 'Tùy chọn';
+      default: return 'Hôm nay';
+    }
+  }
+
+  getTodayDateString(): string {
+    const now = new Date();
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const y = now.getFullYear();
+    return d + '/' + m + '/' + y;
+  }
+
   // ==========================================
   // SETTINGS & TAB SWITCHING
   // ==========================================
