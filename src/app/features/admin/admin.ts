@@ -164,6 +164,17 @@ export class Admin implements OnInit, OnDestroy {
   selectedEvent = signal<BoothEvent | null>(null);
   eventSessions = signal<EventSession[]>([]);
   isLoadingEventSessions = signal<boolean>(false);
+  filterOnlyConsentedSessions = signal<boolean>(false);
+  filteredEventSessions = computed(() => {
+    const list = this.eventSessions();
+    if (this.filterOnlyConsentedSessions()) {
+      return list.filter(s => s.photo_usage_consent === 1);
+    }
+    return list;
+  });
+  consentedSessionsCount = computed(() => {
+    return this.eventSessions().filter(s => s.photo_usage_consent === 1).length;
+  });
   selectedSession = signal<EventSession | null>(null);
   eventQrModal = signal<BoothEvent | null>(null);
 
@@ -237,6 +248,19 @@ export class Admin implements OnInit, OnDestroy {
   // Managed machines & transactions - strictly isolated (no mock data)
   machines = signal<BoothMachine[]>([]);
   transactions = signal<BoothTransaction[]>([]);
+  filterOnlyVouchers = signal<boolean>(false);
+
+  filteredTransactions = computed(() => {
+    let list = this.transactions();
+    if (this.filterOnlyVouchers()) {
+      list = list.filter(t => (t.discount_amount && t.discount_amount > 0) || (t.voucher_code && t.voucher_code.trim().length > 0));
+    }
+    return list;
+  });
+
+  toggleVoucherFilter() {
+    this.filterOnlyVouchers.update(v => !v);
+  }
 
   private readonly MANAGED_MACHINES_KEY = 'tach_managed_machine_ids';
 
@@ -302,7 +326,7 @@ export class Admin implements OnInit, OnDestroy {
         if (data.ok) {
           localStorage.setItem('tach_admin_secret', secret);
           this.isAuthenticated.set(true);
-          if (data.overview) this.overview.set(data.overview);
+          if (data.overview) this.overview.set({ ...data.overview, discount_revenue: data.overview.discount_revenue ?? data.overview.discount_total ?? 0 });
           if (Array.isArray(data.machines) && data.machines.length > 0) {
             this.machines.set(data.machines);
             const managed = new Set<string>(this.getManagedMachineIds());
@@ -366,7 +390,7 @@ export class Admin implements OnInit, OnDestroy {
       if (response.ok) {
         const data = await response.json();
         if (data.ok) {
-          if (data.overview) this.overview.set(data.overview);
+          if (data.overview) this.overview.set({ ...data.overview, discount_revenue: data.overview.discount_revenue ?? data.overview.discount_total ?? 0 });
 
           const fetchedMachines: BoothMachine[] = Array.isArray(data.machines) ? data.machines : [];
 
@@ -817,6 +841,34 @@ export class Admin implements OnInit, OnDestroy {
   getEventShareUrl(evt: BoothEvent): string {
     if (evt.gallery_url) return evt.gallery_url;
     return `https://tachtach.event-vn.com/event/${encodeURIComponent(evt.public_id || evt.id)}`;
+  }
+
+  getEventConsentedShareUrl(evt: BoothEvent): string {
+    const baseUrl = this.getEventShareUrl(evt);
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${sep}consent=1`;
+  }
+
+  getEventConsentedQrUrl(evt: BoothEvent): string {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(this.getEventConsentedShareUrl(evt))}`;
+  }
+
+  openEventGallery(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    window.open(this.getEventShareUrl(evt), '_blank');
+  }
+
+  openEventConsentedGallery(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    window.open(this.getEventConsentedShareUrl(evt), '_blank');
+  }
+
+  copyEventConsentedShareUrl(evt: BoothEvent, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    const url = this.getEventConsentedShareUrl(evt);
+    navigator.clipboard.writeText(url);
+    this.successMessage.set('Đã sao chép liên kết xem ảnh khách đồng ý (Marketing)!');
+    setTimeout(() => this.successMessage.set(''), 3000);
   }
 
   getEventQrUrl(evt: BoothEvent): string {

@@ -31,6 +31,8 @@ export default async function handler(req, res) {
   const legacyQueryValue = firstQueryValue(req.query?.m);
   const sessionPublicId = firstQueryValue(req.query?.s);
   const cursor = firstQueryValue(req.query?.cursor);
+  const consentParam = firstQueryValue(req.query?.consent ?? req.query?.approved);
+  const isConsentOnly = consentParam === '1' || consentParam === 'true';
   if ((!isSafeId(requestedId) && !isSafeId(legacyQueryValue)) || (legacyQueryValue && !isSafeId(legacyQueryValue))) {
     res.status(400).json({ error: 'Gallery identifier is invalid' });
     return;
@@ -72,7 +74,7 @@ export default async function handler(req, res) {
     let media = [];
 
     if (mode === 'EVENT' && source.files) {
-      sessions = buildSessionGroups(source.files, source.consentedSessions);
+      sessions = buildSessionGroups(source.files, isConsentOnly ? (source.consentedSessions || []) : null);
       // Trang sự kiện ở ngoài: chỉ lấy các ảnh final làm ảnh bìa cho từng phiên
       media = sessions.map(s => s.finalPhoto).filter(Boolean);
     } else {
@@ -126,12 +128,13 @@ export default async function handler(req, res) {
     }
 
     // Luồng sự kiện chung (xem tất cả ảnh): Cache ngắn trên CDN
-    res.setHeader('Cache-Control', 'public, max-age=10, s-maxage=30, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', isConsentOnly ? 'no-cache, no-store, must-revalidate' : 'public, max-age=10, s-maxage=30, stale-while-revalidate=60');
     res.status(200).json({
       mode,
       status: 'READY',
       event: isEventPublicId(requestedId) ? requestedId : null,
       session: null,
+      consentOnly: isConsentOnly,
       sessions,
       items: media,
       pollAfterMs: null,

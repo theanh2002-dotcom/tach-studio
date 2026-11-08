@@ -394,6 +394,16 @@
             <option *ngFor="let m of machines()" [value]="m.id">{{ m.name }} ({{ m.id }})</option>
           </select>
 
+          <!-- Filter Voucher Button -->
+          <button (click)="toggleVoucherFilter()"
+                  type="button"
+                  [ngClass]="filterOnlyVouchers() ? 'bg-emerald-700 text-white shadow' : 'bg-[#FAF6F0] text-[#2C1A1D] border border-[#E8DDD2] hover:bg-[#E8DDD2]'"
+                  class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+            <span>🎟️</span>
+            <span>Chỉ đơn Voucher</span>
+            <span *ngIf="filterOnlyVouchers()" class="ml-1 bg-white/20 px-1.5 py-0.5 rounded-full text-[10px]">Đang bật</span>
+          </button>
+
           <button (click)="exportTransactionsCsv()"
                   class="px-4 py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-bold shadow flex items-center gap-1.5 transition-all">
             <span>📥</span>
@@ -433,12 +443,12 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E8DDD2] text-[#2C1A1D]">
-              <tr *ngIf="transactions().length === 0">
+              <tr *ngIf="filteredTransactions().length === 0">
                 <td colspan="10" class="py-12 text-center text-xs text-[#2C1A1D]/50 italic">
                   Chưa có giao dịch chụp ảnh nào được ghi nhận theo bộ lọc thời gian này.
                 </td>
               </tr>
-              <tr *ngFor="let tx of transactions()" class="hover:bg-gray-50/70 transition-colors">
+              <tr *ngFor="let tx of filteredTransactions()" class="hover:bg-gray-50/70 transition-colors">
                 <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at) }}</td>
                 <td class="py-3 px-4 font-semibold text-[#681423]">{{ tx.machine_name || tx.machine_id }}</td>
                 <td class="py-3 px-4 font-mono text-[11px] text-[#2C1A1D]/70">{{ tx.session_code || tx.session_public_id || '-' }}</td>
@@ -765,9 +775,14 @@
                 📱 QR
               </button>
 
-              <button (click)="copyEventShareUrl(evt, $event)" title="Sao chép link web"
+              <button (click)="copyEventShareUrl(evt, $event)" title="Sao chép link web (xem toàn bộ ảnh)"
                       class="p-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs text-[#681423] transition-colors">
                 📋
+              </button>
+
+              <button (click)="openEventConsentedGallery(evt, $event)" title="Mở web xem ảnh khách đồng ý (consent=1)"
+                      class="p-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs text-emerald-800 font-bold transition-colors">
+                ✅ Đồng ý
               </button>
             </div>
 
@@ -810,6 +825,21 @@
               <span>📋</span>
               <span>Sao Chép Link Khách</span>
             </button>
+            <button (click)="openEventConsentedGallery(selectedEvent()!, $event)"
+                    class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-emerald-800 transition-all flex items-center gap-1.5">
+              <span>✅</span>
+              <span>Xem Ảnh Khách Đồng Ý</span>
+            </button>
+            <button (click)="copyEventConsentedShareUrl(selectedEvent()!, $event)"
+                    title="Sao chép link web chỉ hiển thị phiên khách đồng ý"
+                    class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-emerald-800 transition-all">
+              📋 Link đồng ý
+            </button>
+            <button (click)="filterOnlyConsentedSessions.set(!filterOnlyConsentedSessions())" type="button"
+                    [ngClass]="filterOnlyConsentedSessions() ? 'bg-emerald-700 text-white shadow' : 'bg-[#FAF6F0] text-[#681423] border border-[#C89965]/40 hover:bg-[#E8DDD2]'"
+                    class="px-4 py-2 rounded-xl text-xs font-semibold transition-all">
+              Lọc đồng ý ({{ consentedSessionsCount() }})
+            </button>
           </div>
         </div>
 
@@ -831,7 +861,7 @@
         <!-- Event Sessions Grid -->
         <div *ngIf="!isLoadingEventSessions() && eventSessions().length > 0"
              class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div *ngFor="let s of eventSessions()"
+          <div *ngFor="let s of filteredEventSessions()"
                class="bg-white rounded-3xl p-5 border border-[#E8DDD2] shadow-sm flex flex-col justify-between hover:shadow-md transition-all">
             
             <div>
@@ -1314,6 +1344,10 @@
         <button (click)="copyEventShareUrl(eventQrModal()!)"
                 class="w-full py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs uppercase tracking-wider shadow transition-all">
           📋 Sao Chép Liên Kết
+        </button>
+        <button (click)="copyEventConsentedShareUrl(eventQrModal()!)"
+                class="w-full mt-2 py-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs uppercase tracking-wider transition-all">
+          ✅ Sao Chép Link Ảnh Khách Đồng Ý
         </button>
       </div>
     </div>

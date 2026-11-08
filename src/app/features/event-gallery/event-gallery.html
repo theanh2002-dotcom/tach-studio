@@ -20,6 +20,13 @@
           <span class="pulse-dot"></span>
           Đang cập nhật
         </span>
+
+        <span class="meta-badge" style="background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; font-weight: 600;" *ngIf="isConsentOnly()" title="Chỉ hiển thị các phiên khách đã đồng ý chia sẻ">
+          <svg viewBox="0 0 20 20" fill="currentColor" class="meta-icon" style="color: #059669;">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          Ảnh Khách Đồng Ý (Marketing)
+        </span>
         <button type="button" class="meta-badge meta-badge--pending" *ngIf="!isPolling() && galleryStatus() === 'PENDING' && photoCount() > 0" (click)="refreshNow()" title="Chạm để kiểm tra thêm ảnh từ buồng chụp">
           <span class="pending-dot"></span>
           Chưa đủ bộ (Bấm tải thêm)
@@ -496,8 +503,9 @@
       <path d="M8 44l14-14 10 10 8-8 16 16" />
     </svg>
   </div>
-  <h3 class="empty-title">Ảnh đang được chuẩn bị</h3>
-  <p class="empty-desc">Hệ thống đang xử lý và tải ảnh lên.<br />Ảnh sẽ tự động hiện ra khi sẵn sàng.</p>
+  <h3 class="empty-title">{{ isConsentOnly() ? 'Chưa có ảnh khách đồng ý' : 'Ảnh đang được chuẩn bị' }}</h3>
+  <p class="empty-desc" *ngIf="!isConsentOnly()">Hệ thống đang xử lý và tải ảnh lên.<br />Ảnh sẽ tự động hiện ra khi sẵn sàng.</p>
+  <p class="empty-desc" *ngIf="isConsentOnly()">Sự kiện này chưa có phiên chụp nào khách bấm đồng ý sử dụng hình ảnh truyền thông.</p>
   <div class="empty-pulse">
     <span class="pulse-dot pulse-dot--lg"></span>
     <span>Đang chờ...</span>

@@ -67,6 +67,7 @@ interface PublicGalleryResponse {
   nextCursor?: string | null;
   sessions?: any[];
   items?: PublicGalleryMedia[];
+  consentOnly?: boolean;
 }
 
 export interface GalleryLoadResult {
@@ -76,6 +77,7 @@ export interface GalleryLoadResult {
   nextCursor: string | null;
   sessions: GallerySession[];
   photos: GalleryPhoto[];
+  consentOnly?: boolean;
 }
 
 /**
@@ -91,6 +93,7 @@ export interface GalleryLoadResult {
 export class GoogleDriveGalleryService {
   private legacyQueryValue: string | null = null;
   private sessionPublicId: string | null = null;
+  private consentOnly: boolean = false;
 
   constructor(private http: HttpClient) {}
 

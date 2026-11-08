@@ -32,6 +32,7 @@ export class EventGallery implements OnInit, OnDestroy {
   activeSessionMediaIndex = signal<number>(0);
   isSingleSession = signal<boolean>(false);
   isSessionTimedOut = signal<boolean>(false);
+  isConsentOnly = signal<boolean>(false);
   selectedIndex = signal<number>(0);
   isLoading = signal<boolean>(true);
   isPolling = signal<boolean>(false);
