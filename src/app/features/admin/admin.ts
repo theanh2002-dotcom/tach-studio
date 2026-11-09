@@ -240,7 +240,12 @@ export class Admin implements OnInit, OnDestroy {
         list = list.filter(s => this.getSessionVnDate(s) === dateFilter);
       }
     }
-    return list;
+    return list.slice().sort((a, b) => {
+      const timeA = this.getSessionDate(a)?.getTime() || 0;
+      const timeB = this.getSessionDate(b)?.getTime() || 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return (b.id || '').localeCompare(a.id || '');
+    });
   });
 
   setEventDateFilter(filter: string) {
@@ -497,7 +502,13 @@ export class Admin implements OnInit, OnDestroy {
           this.machines.set(Array.from(machineMap.values()));
 
           if (Array.isArray(data.recentTransactions)) {
-            this.transactions.set(data.recentTransactions);
+            const sortedTx = [...data.recentTransactions].sort((a, b) => {
+              const timeA = this.extractDateFromSessionId(a.session_public_id || a.id)?.getTime() || this.parseUtcDate(a.created_at)?.getTime() || 0;
+              const timeB = this.extractDateFromSessionId(b.session_public_id || b.id)?.getTime() || this.parseUtcDate(b.created_at)?.getTime() || 0;
+              if (timeA !== timeB) return timeB - timeA;
+              return (b.id || '').localeCompare(a.id || '');
+            });
+            this.transactions.set(sortedTx);
           } else {
             this.transactions.set([]);
           }
@@ -601,6 +612,7 @@ export class Admin implements OnInit, OnDestroy {
           params.set('machineIds', managedIds.join(','));
         }
       }
+      params.set('storeId', 'store_hp_01');
       params.set('limit', '60');
 
       const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/marketing-photos?${params.toString()}`, {
@@ -636,6 +648,13 @@ export class Admin implements OnInit, OnDestroy {
               signed_thumb_url: p.finalPhoto?.thumbnailUrl || p.finalPhoto?.mediaUrl || p.signed_thumb_url || p.signed_final_url || '',
               signed_guest_share_url: p.guestShareUrl || p.signed_guest_share_url || ''
             };
+          });
+          normalized.sort((a, b) => {
+            if (b.is_featured !== a.is_featured) return b.is_featured - a.is_featured;
+            const timeA = this.extractDateFromSessionId(a.session_public_id || a.id)?.getTime() || this.parseUtcDate(a.created_at)?.getTime() || 0;
+            const timeB = this.extractDateFromSessionId(b.session_public_id || b.id)?.getTime() || this.parseUtcDate(b.created_at)?.getTime() || 0;
+            if (timeA !== timeB) return timeB - timeA;
+            return (b.id || '').localeCompare(a.id || '');
           });
           this.marketingPhotos.set(normalized);
         } else {
@@ -935,6 +954,12 @@ export class Admin implements OnInit, OnDestroy {
               btsVideo,
               guestShareUrl: s.guestShareUrl || s.guest_share_url || ''
             };
+          });
+          normalizedSessions.sort((a, b) => {
+            const timeA = this.getSessionDate(a)?.getTime() || 0;
+            const timeB = this.getSessionDate(b)?.getTime() || 0;
+            if (timeA !== timeB) return timeB - timeA;
+            return (b.id || '').localeCompare(a.id || '');
           });
           this.eventSessions.set(normalizedSessions);
         }

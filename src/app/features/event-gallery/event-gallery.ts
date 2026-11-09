@@ -498,13 +498,27 @@ export class EventGallery implements OnInit, OnDestroy {
         }
       }
 
-      // 2. Sắp xếp giữa các phiên theo createdTime / timestamp giảm dần
+      // 2. Sắp xếp giữa các phiên theo UUIDv7 timestamp / createdTime giảm dần
+      const getSessionTs = (id?: string | null) => {
+        if (!id) return 0;
+        const match = /(?:ses_|^)([0-9a-f]{12})/i.exec(id);
+        if (match) {
+          const ts = parseInt(match[1], 16);
+          if (!isNaN(ts) && ts > 1700000000000) return ts;
+        }
+        return 0;
+      };
+      const tsLeft = getSessionTs(left.sessionId);
+      const tsRight = getSessionTs(right.sessionId);
+      if (tsLeft && tsRight && tsLeft !== tsRight) {
+        return tsRight - tsLeft;
+      }
       const leftTime = Date.parse(left.createdTime || '');
       const rightTime = Date.parse(right.createdTime || '');
       if (!Number.isNaN(leftTime) && !Number.isNaN(rightTime) && leftTime !== rightTime) {
         return rightTime - leftTime;
       }
-      return 0;
+      return (right.sessionId || '').localeCompare(left.sessionId || '');
     });
   }
 
