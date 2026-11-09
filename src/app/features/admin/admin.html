@@ -574,7 +574,7 @@
 
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-[#681423]">Lọc thời gian:</span>
-          <div class="flex items-center gap-1">
+            <div class="flex items-center gap-1">
             <button (click)="setMarketingRange('all')"
                     class="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
                     [ngClass]="marketingRange() === 'all' ? 'bg-[#681423] text-white' : 'bg-[#FAF6F0] text-[#2C1A1D] hover:bg-[#E8DDD2]'">
@@ -597,6 +597,7 @@
             </button>
           </div>
         </div>
+      </div>
 
         <button (click)="toggleMarketingFeaturedOnly()"
                 class="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all border"

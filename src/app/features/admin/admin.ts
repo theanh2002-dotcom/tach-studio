@@ -1321,6 +1321,7 @@ export class Admin implements OnInit, OnDestroy {
     } else if (tab === 'settings') {
       this.loadSettings();
     }
+    this.cdr.markForCheck();
   }
 
   toggleShowTokens() {
