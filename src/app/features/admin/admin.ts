@@ -167,13 +167,77 @@ export class Admin implements OnInit, OnDestroy {
   eventSessions = signal<EventSession[]>([]);
   isLoadingEventSessions = signal<boolean>(false);
   filterOnlyConsentedSessions = signal<boolean>(false);
+  selectedEventDateFilter = signal<string>('all'); // 'all', 'today', 'yesterday', or 'YYYY-MM-DD'
+  customEventDate = '';
+
+  // Get Vietnam date string 'YYYY-MM-DD' from session created_at
+  getSessionVnDate(s: EventSession): string {
+    const d = this.parseUtcDate(s.created_at);
+    if (!d) return '';
+    return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }); // YYYY-MM-DD
+  }
+
+  // Available dates in eventSessions sorted descending
+  availableEventDates = computed(() => {
+    const sessions = this.eventSessions();
+    const map = new Map<string, number>();
+    for (const s of sessions) {
+      const vnDate = this.getSessionVnDate(s);
+      if (vnDate) {
+        map.set(vnDate, (map.get(vnDate) || 0) + 1);
+      }
+    }
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const yestDate = new Date(Date.now() - 86400000);
+    const yesterdayStr = yestDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    return Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([dateKey, count]) => {
+        const [y, m, d] = dateKey.split('-');
+        let label = `${d}/${m}/${y}`;
+        if (dateKey === todayStr) label += ' (Hôm nay)';
+        else if (dateKey === yesterdayStr) label += ' (Hôm qua)';
+        return { key: dateKey, label, count };
+      });
+  });
+
   filteredEventSessions = computed(() => {
-    const list = this.eventSessions();
+    let list = this.eventSessions();
     if (this.filterOnlyConsentedSessions()) {
-      return list.filter(s => s.photo_usage_consent === 1);
+      list = list.filter(s => s.photo_usage_consent === 1);
+    }
+    const dateFilter = this.selectedEventDateFilter();
+    if (dateFilter && dateFilter !== 'all') {
+      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+      const yestDate = new Date(Date.now() - 86400000);
+      const yesterdayStr = yestDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+      if (dateFilter === 'today') {
+        list = list.filter(s => this.getSessionVnDate(s) === todayStr);
+      } else if (dateFilter === 'yesterday') {
+        list = list.filter(s => this.getSessionVnDate(s) === yesterdayStr);
+      } else {
+        list = list.filter(s => this.getSessionVnDate(s) === dateFilter);
+      }
     }
     return list;
   });
+
+  setEventDateFilter(filter: string) {
+    this.selectedEventDateFilter.set(filter);
+    if (filter !== 'custom') {
+      this.customEventDate = '';
+    }
+    this.cdr.markForCheck();
+  }
+
+  onCustomEventDateChange() {
+    if (this.customEventDate) {
+      this.selectedEventDateFilter.set(this.customEventDate);
+      this.cdr.markForCheck();
+    }
+  }
   consentedSessionsCount = computed(() => {
     return this.eventSessions().filter(s => s.photo_usage_consent === 1).length;
   });
@@ -798,6 +862,8 @@ export class Admin implements OnInit, OnDestroy {
     this.isLoadingEventSessions.set(true);
     this.eventSessions.set([]);
     this.selectedSession.set(null);
+    this.selectedEventDateFilter.set('all');
+    this.customEventDate = '';
 
     try {
       const params = new URLSearchParams();
@@ -1270,11 +1336,57 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
+  parseUtcDate(str: string): Date | null {
+    if (!str) return null;
+    str = str.trim();
+    if (str.endsWith('Z') || str.includes('+') || /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(str)) {
+      const d = new Date(str.endsWith('Z') || str.includes('+') ? str : str + 'Z');
+      if (!isNaN(d.getTime())) return d;
+    }
+    let s = str.replace(/SA/i, 'AM').replace(/CH/i, 'PM');
+    const sqlMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (sqlMatch) {
+      const [_, y, m, d, hh, mm, ss] = sqlMatch;
+      return new Date(Date.UTC(+y, +m - 1, +d, +hh, +mm, +(ss || 0)));
+    }
+    const partsMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?)?/i);
+    if (partsMatch) {
+      let [_, p1, p2, y, hh, mm, ss, ampm] = partsMatch;
+      let month: number, day: number;
+      if (+p1 > 12) { day = +p1; month = +p2; }
+      else if (+p2 > 12) { month = +p1; day = +p2; }
+      else { month = +p1; day = +p2; }
+      let hour = +(hh || 0);
+      if (ampm) {
+        if (ampm.toUpperCase() === 'PM' && hour < 12) hour += 12;
+        if (ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+      }
+      return new Date(Date.UTC(+y, month - 1, day, hour, +(mm || 0), +(ss || 0)));
+    }
+    const d = new Date(str + ' UTC');
+    if (!isNaN(d.getTime())) return d;
+    const d2 = new Date(str);
+    return isNaN(d2.getTime()) ? null : d2;
+  }
+
   formatTime(isoString: string): string {
     if (!isoString) return '';
     try {
-      const d = new Date(isoString);
-      return d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' ' + d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      const d = this.parseUtcDate(isoString);
+      if (!d) return isoString;
+      const timeStr = d.toLocaleTimeString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+      const dateStr = d.toLocaleDateString('vi-VN', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      return `${timeStr} ${dateStr}`;
     } catch {
       return isoString;
     }

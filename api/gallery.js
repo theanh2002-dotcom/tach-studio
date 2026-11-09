@@ -382,9 +382,18 @@ function buildSessionGroups(files, consentedSessions = null) {
     let timeFormatted = '';
     if (s.timestamp) {
       const d = new Date(s.timestamp);
-      const hours = String(d.getHours()).padStart(2, '0');
-      const mins = String(d.getMinutes()).padStart(2, '0');
-      timeFormatted = `${hours}:${mins}`;
+      try {
+        timeFormatted = new Intl.DateTimeFormat('vi-VN', {
+          timeZone: 'Asia/Ho_Chi_Minh',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).format(d);
+      } catch {
+        const hours = String(d.getHours()).padStart(2, '0');
+        const mins = String(d.getMinutes()).padStart(2, '0');
+        timeFormatted = `${hours}:${mins}`;
+      }
     }
 
     const sessionNumber = sortedSessions.length - index;
