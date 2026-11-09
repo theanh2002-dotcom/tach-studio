@@ -271,9 +271,12 @@ export class EventGallery implements OnInit, OnDestroy {
         this.eventId = eventId;
         const legacyQueryValue = queryParams.get('m');
         const sessionPublicId = queryParams.get('s');
+        const consentParam = queryParams.get('consent') || queryParams.get('approved');
+        const isConsent = consentParam === '1' || consentParam === 'true';
+        this.isConsentOnly.set(isConsent);
         this.isSessionGallery = Boolean(sessionPublicId);
         this.isSingleSession.set(Boolean(sessionPublicId));
-        this.driveService.setRouteQuery(legacyQueryValue, sessionPublicId);
+        this.driveService.setRouteQuery(legacyQueryValue, sessionPublicId, isConsent);
         this.loadInitialPhotos();
       });
     });
@@ -323,9 +326,10 @@ export class EventGallery implements OnInit, OnDestroy {
           this.loadGalleryPage(result.nextCursor, photos);
           return;
         }
-        if (result.sessions && result.sessions.length > 0) {
-          this.sessions.set(result.sessions);
+        if (result.consentOnly !== undefined) {
+          this.isConsentOnly.set(Boolean(result.consentOnly));
         }
+        this.sessions.set(result.sessions || []);
         this.galleryStatus.set(result.status);
         this.photos.set(this.sortPhotos(photos));
         photos.forEach(p => this.knownMediaIds.add(p.mediaId));

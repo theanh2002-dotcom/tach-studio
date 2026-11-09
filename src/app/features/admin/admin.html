@@ -563,6 +563,15 @@
             </select>
           </div>
 
+          <div class="flex items-center gap-2" *ngIf="eventsList().length > 0">
+            <span class="text-xs font-bold text-[#681423]">Sự kiện:</span>
+            <select [(ngModel)]="selectedMarketingEventId" (change)="fetchMarketingPhotos()"
+                    class="px-3 py-1 rounded-xl border border-[#E8DDD2] bg-[#FAF6F0] text-xs font-semibold text-[#681423] focus:outline-none">
+              <option value="">Tất cả sự kiện ({{ eventsList().length }})</option>
+              <option *ngFor="let evt of eventsList()" [value]="evt.id">{{ evt.name }} ({{ evt.consented_sessions }} ảnh)</option>
+            </select>
+          </div>
+
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-[#681423]">Lọc thời gian:</span>
           <div class="flex items-center gap-1">
@@ -664,8 +673,13 @@
                 <div class="font-bold text-[#681423] text-xs truncate" [title]="photo.session_code">
                   {{ photo.session_code || photo.session_public_id }}
                 </div>
-                <div class="text-[10px] text-[#2C1A1D]/60 mt-0.5 truncate">
-                  {{ photo.event_name || photo.machine_name || photo.machine_id }}
+                <div class="text-[10px] text-[#2C1A1D]/60 mt-0.5 truncate flex items-center gap-1.5">
+                  <a *ngIf="photo.event_public_id" [href]="'/event/' + photo.event_public_id + '?consent=1'" target="_blank"
+                     class="hover:underline font-semibold text-[#681423] inline-flex items-center gap-0.5" title="Mở web xem ảnh khách đồng ý của sự kiện này">
+                    <span>🎉</span>
+                    <span>{{ photo.event_name || photo.event_public_id }}</span>
+                  </a>
+                  <span *ngIf="photo.machine_name || photo.machine_id" class="text-gray-400">• {{ photo.machine_name || photo.machine_id }}</span>
                 </div>
               </div>
               <span class="text-[9px] bg-emerald-50 text-emerald-800 font-bold px-1.5 py-0.5 rounded border border-emerald-200 shrink-0">

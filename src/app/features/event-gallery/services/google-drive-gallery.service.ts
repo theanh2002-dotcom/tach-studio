@@ -98,9 +98,10 @@ export class GoogleDriveGalleryService {
   constructor(private http: HttpClient) {}
 
   /** Reads the manifest id carried by the desktop-generated QR link. */
-  setRouteQuery(manifestId: string | null, sessionPublicId: string | null) {
+  setRouteQuery(manifestId: string | null, sessionPublicId: string | null, consentOnly: boolean = false) {
     this.legacyQueryValue = manifestId;
     this.sessionPublicId = sessionPublicId;
+    this.consentOnly = consentOnly;
   }
 
   listPhotosInFolder(publicGalleryId: string, cursor: string | null = null): Observable<GalleryLoadResult> {
@@ -110,6 +111,7 @@ export class GoogleDriveGalleryService {
       params = params.set('s', this.sessionPublicId);
       params = params.set('_t', Date.now().toString());
     }
+    if (this.consentOnly) params = params.set('consent', '1');
     if (cursor) params = params.set('cursor', cursor);
 
     return this.http.get<PublicGalleryResponse | PublicGalleryMedia[]>('/api/gallery', {
@@ -128,6 +130,7 @@ export class GoogleDriveGalleryService {
           status: Array.isArray(response) ? 'READY' : (response.status || 'READY'),
           pollAfterMs: Array.isArray(response) ? null : (response.pollAfterMs ?? null),
           nextCursor: Array.isArray(response) ? null : (response.nextCursor ?? null),
+          consentOnly: Array.isArray(response) ? false : Boolean(response.consentOnly),
           sessions,
           photos: items.map(item => this.fromPublicMedia(item))
         } as GalleryLoadResult;

@@ -151,6 +151,7 @@ export class Admin implements OnInit, OnDestroy {
   marketingPhotos = signal<MarketingPhoto[]>([]);
   isLoadingMarketing = signal<boolean>(false);
   selectedMarketingMachineId = signal<string>('');
+  selectedMarketingEventId = signal<string>('');
   marketingRange = signal<'all' | 'today' | '7d' | '30d'>('all');
   marketingFeaturedOnly = signal<boolean>(false);
   selectedMarketingIds = signal<string[]>([]);
@@ -505,6 +506,9 @@ export class Admin implements OnInit, OnDestroy {
       params.set('range', this.marketingRange());
       if (this.marketingFeaturedOnly()) {
         params.set('featuredOnly', 'true');
+      }
+      if (this.selectedMarketingEventId()) {
+        params.set('eventPublicId', this.selectedMarketingEventId());
       }
       if (this.selectedMarketingMachineId()) {
         params.set('machineId', this.selectedMarketingMachineId());
@@ -882,7 +886,9 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   getEventShareUrl(evt: BoothEvent): string {
-    if (evt.gallery_url) return evt.gallery_url;
+    if (evt.gallery_url) {
+      return evt.gallery_url.replace('https://tanh.event-vn.com', 'https://tachtach.event-vn.com');
+    }
     return `https://tachtach.event-vn.com/event/${encodeURIComponent(evt.public_id || evt.id)}`;
   }
 
@@ -1306,6 +1312,9 @@ export class Admin implements OnInit, OnDestroy {
     if (tab === 'revenue') {
       this.fetchCloudflareDashboard();
     } else if (tab === 'marketing') {
+      if (this.eventsList().length === 0) {
+        this.fetchEvents();
+      }
       this.fetchMarketingPhotos();
     } else if (tab === 'events') {
       this.fetchEvents();
