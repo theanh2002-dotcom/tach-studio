@@ -150,6 +150,7 @@ export class Admin implements OnInit, OnDestroy {
   // Marketing Gallery State
   marketingPhotos = signal<MarketingPhoto[]>([]);
   isLoadingMarketing = signal<boolean>(false);
+  selectedMarketingMachineId = signal<string>('');
   marketingRange = signal<'all' | 'today' | '7d' | '30d'>('all');
   marketingFeaturedOnly = signal<boolean>(false);
   selectedMarketingIds = signal<string[]>([]);
@@ -263,13 +264,23 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   private readonly MANAGED_MACHINES_KEY = 'tach_managed_machine_ids';
+  private readonly DEFAULT_STORE_MACHINES = [
+    'device_a4ef47f074a84baaa74d79140d7c6a78', // PHÒNG 1
+    'device_84c1f39677a9479e99bd8198234491cf'  // PHÒNG 2
+  ];
 
   getManagedMachineIds(): string[] {
     try {
       const raw = localStorage.getItem(this.MANAGED_MACHINES_KEY);
-      return raw ? JSON.parse(raw) : [];
+      let list: string[] = raw ? JSON.parse(raw) : [];
+      list = list.filter(id => id && id !== 'device_f30f8fb08a354cedb2612c587a3c5f5f');
+      if (list.length === 0) {
+        list = [...this.DEFAULT_STORE_MACHINES];
+        this.saveManagedMachineIds(list);
+      }
+      return list;
     } catch {
-      return [];
+      return [...this.DEFAULT_STORE_MACHINES];
     }
   }
 
@@ -329,9 +340,6 @@ export class Admin implements OnInit, OnDestroy {
           if (data.overview) this.overview.set({ ...data.overview, discount_revenue: data.overview.discount_revenue ?? data.overview.discount_total ?? 0 });
           if (Array.isArray(data.machines) && data.machines.length > 0) {
             this.machines.set(data.machines);
-            const managed = new Set<string>(this.getManagedMachineIds());
-            for (const m of data.machines) managed.add(m.id);
-            this.saveManagedMachineIds(Array.from(managed));
           }
           if (Array.isArray(data.recentTransactions) && data.recentTransactions.length > 0) {
             this.transactions.set(data.recentTransactions);
@@ -394,12 +402,7 @@ export class Admin implements OnInit, OnDestroy {
 
           const fetchedMachines: BoothMachine[] = Array.isArray(data.machines) ? data.machines : [];
 
-          // Deduplicate and canonicalize managedIds
-          const updatedManagedIds = new Set<string>(managedIds);
-          for (const m of fetchedMachines) {
-            updatedManagedIds.add(m.id);
-          }
-          this.saveManagedMachineIds(Array.from(updatedManagedIds));
+// Managed IDs strictly curated by Admin (no auto-add of foreign machines)
 
           // Build final unique machine list
           const machineMap = new Map<string, BoothMachine>();
@@ -502,6 +505,14 @@ export class Admin implements OnInit, OnDestroy {
       params.set('range', this.marketingRange());
       if (this.marketingFeaturedOnly()) {
         params.set('featuredOnly', 'true');
+      }
+      if (this.selectedMarketingMachineId()) {
+        params.set('machineId', this.selectedMarketingMachineId());
+      } else {
+        const managedIds = this.getManagedMachineIds();
+        if (managedIds.length > 0) {
+          params.set('machineIds', managedIds.join(','));
+        }
       }
       params.set('limit', '60');
 
@@ -707,6 +718,11 @@ export class Admin implements OnInit, OnDestroy {
       params.set('storeId', 'store_hp_01');
       if (this.selectedEventMachineId()) {
         params.set('machineId', this.selectedEventMachineId());
+      } else {
+        const managedIds = this.getManagedMachineIds();
+        if (managedIds.length > 0) {
+          params.set('machineIds', managedIds.join(','));
+        }
       }
       const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/events?${params.toString()}`, {
         headers: {
