@@ -472,7 +472,7 @@
                 </td>
               </tr>
               <tr *ngFor="let tx of filteredTransactions()" class="hover:bg-gray-50/70 transition-colors">
-                <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at) }}</td>
+                <td class="py-3 px-4 text-[#2C1A1D]/70 font-mono">{{ formatTime(tx.created_at, tx.session_public_id || tx.id) }}</td>
                 <td class="py-3 px-4 font-semibold text-[#681423]">{{ tx.machine_name || tx.machine_id }}</td>
                 <td class="py-3 px-4 font-mono text-[11px] text-[#2C1A1D]/70">{{ tx.session_code || tx.session_public_id || '-' }}</td>
                 <td class="py-3 px-4">{{ tx.package_name }}</td>
@@ -689,7 +689,7 @@
             </div>
 
             <div class="flex items-center justify-between pt-2 border-t border-[#E8DDD2]/60 text-[10px] text-[#2C1A1D]/60">
-              <span>{{ formatTime(photo.created_at) }}</span>
+              <span>{{ formatTime(photo.created_at, photo.session_public_id || photo.id) }}</span>
               <div class="flex items-center gap-3">
                 <button (click)="downloadSinglePhoto(photo, $event)"
                         class="text-[#681423] hover:underline font-bold flex items-center gap-1">
@@ -990,7 +990,7 @@
               <div class="flex items-center justify-between text-xs mb-3">
                 <div class="flex flex-col">
                   <span class="font-mono font-bold text-[#681423]">{{ s.session_code || s.session_public_id }}</span>
-                  <span class="text-[10px] text-[#2C1A1D]/60 mt-0.5 font-mono">🕒 {{ formatTime(s.created_at) }}</span>
+                  <span class="text-[10px] text-[#2C1A1D]/60 mt-0.5 font-mono">🕒 {{ formatTime(s.created_at, s.id) }}</span>
                 </div>
                 <span class="text-[10px] px-2 py-0.5 rounded-full font-bold"
                       [ngClass]="s.photo_usage_consent === 1 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-gray-100 text-gray-500'">
@@ -1412,7 +1412,7 @@
               </div>
               <div>
                 <span class="text-[#2C1A1D]/60 block text-[10px]">THỜI GIAN CHỤP</span>
-                <span>{{ formatTime(previewPhoto()?.created_at || '') }}</span>
+                <span>{{ formatTime(previewPhoto()?.created_at || '', previewPhoto()?.session_public_id || previewPhoto()?.id) }}</span>
               </div>
               <div>
                 <span class="text-[#2C1A1D]/60 block text-[10px]">ĐỒNG Ý MARKETING</span>
@@ -1488,7 +1488,7 @@
             <h3 class="font-serif font-bold text-lg text-[#681423]">
               Phiên Chụp: {{ selectedSession()?.session_code || selectedSession()?.session_public_id }}
             </h3>
-            <span class="text-xs text-[#2C1A1D]/60">Thời gian: {{ formatTime(selectedSession()?.created_at || '') }}</span>
+            <span class="text-xs text-[#2C1A1D]/60">Thời gian: {{ formatTime(selectedSession()?.created_at || '', selectedSession()?.id || '') }}</span>
           </div>
           <button (click)="closeSessionDetail()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
             ✕

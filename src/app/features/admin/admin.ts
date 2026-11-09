@@ -170,9 +170,28 @@ export class Admin implements OnInit, OnDestroy {
   selectedEventDateFilter = signal<string>('all'); // 'all', 'today', 'yesterday', or 'YYYY-MM-DD'
   customEventDate = '';
 
-  // Get Vietnam date string 'YYYY-MM-DD' from session created_at
+  // Extract timestamp from UUIDv7 (first 12 hex chars encode 48-bit Unix timestamp)
+  extractDateFromSessionId(idOrCode?: string): Date | null {
+    if (!idOrCode) return null;
+    const clean = idOrCode.trim();
+    const match = /(?:ses_|^)([0-9a-f]{12})/i.exec(clean);
+    if (match) {
+      const ts = parseInt(match[1], 16);
+      if (!isNaN(ts) && ts > 1700000000000 && ts < 2500000000000) {
+        return new Date(ts);
+      }
+    }
+    return null;
+  }
+
+  // Get date for session (prioritize UUIDv7 timestamp, fallback to created_at string)
+  getSessionDate(s: EventSession): Date | null {
+    return this.extractDateFromSessionId(s.id || s.session_public_id) || this.parseUtcDate(s.created_at);
+  }
+
+  // Get Vietnam date string 'YYYY-MM-DD' from session
   getSessionVnDate(s: EventSession): string {
-    const d = this.parseUtcDate(s.created_at);
+    const d = this.getSessionDate(s);
     if (!d) return '';
     return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }); // YYYY-MM-DD
   }
@@ -532,7 +551,7 @@ export class Admin implements OnInit, OnDestroy {
     ];
 
     const rows = list.map(tx => [
-      `"${this.formatTime(tx.created_at)}"`,
+      `"${this.formatTime(tx.created_at, tx.session_public_id || tx.id)}"`,
       `"${tx.id}"`,
       `"${tx.machine_name || tx.machine_id}"`,
       `"${tx.session_code || tx.session_public_id || ''}"`,
@@ -1369,11 +1388,10 @@ export class Admin implements OnInit, OnDestroy {
     return isNaN(d2.getTime()) ? null : d2;
   }
 
-  formatTime(isoString: string): string {
-    if (!isoString) return '';
+  formatTime(isoString: string, idOrCode?: string): string {
+    const d = this.extractDateFromSessionId(idOrCode) || this.parseUtcDate(isoString);
+    if (!d) return isoString || '';
     try {
-      const d = this.parseUtcDate(isoString);
-      if (!d) return isoString;
       const timeStr = d.toLocaleTimeString('vi-VN', {
         timeZone: 'Asia/Ho_Chi_Minh',
         hour: '2-digit',
@@ -1388,7 +1406,7 @@ export class Admin implements OnInit, OnDestroy {
       });
       return `${timeStr} ${dateStr}`;
     } catch {
-      return isoString;
+      return isoString || '';
     }
   }
 
