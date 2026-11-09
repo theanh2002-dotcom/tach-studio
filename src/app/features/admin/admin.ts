@@ -573,6 +573,33 @@ export class Admin implements OnInit, OnDestroy {
     this.fetchMarketingPhotos();
   }
 
+  async removeMarketingPhoto(photo: MarketingPhoto, ev?: MouseEvent) {
+    if (ev) ev.stopPropagation();
+    if (!confirm('Bạn có chắc chắn muốn gỡ ảnh này khỏi Kho Marketing (hủy quyền sử dụng ảnh)?')) {
+      return;
+    }
+
+    const sId = photo.session_public_id || photo.id;
+    // Optimistic update
+    this.marketingPhotos.update(list => list.filter(p => p.id !== photo.id));
+
+    try {
+      await fetch(`${this.defaultWorkerUrl}/v1/admin/marketing-photos/${encodeURIComponent(sId)}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${this.adminSecret().trim()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ photoUsageConsent: 0 })
+      });
+      this.successMessage.set('Đã gỡ ảnh khỏi Kho Marketing thành công!');
+      setTimeout(() => this.successMessage.set(''), 3000);
+    } catch (e: any) {
+      console.warn('Failed to revoke marketing photo consent:', e);
+      this.fetchMarketingPhotos();
+    }
+  }
+
   async toggleStarPhoto(photo: MarketingPhoto, ev?: MouseEvent) {
     if (ev) ev.stopPropagation();
     const nextFeatured = photo.is_featured === 1 ? 0 : 1;

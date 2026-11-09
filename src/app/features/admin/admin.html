@@ -675,10 +675,17 @@
 
             <div class="flex items-center justify-between pt-2 border-t border-[#E8DDD2]/60 text-[10px] text-[#2C1A1D]/60">
               <span>{{ formatTime(photo.created_at) }}</span>
-              <button (click)="downloadSinglePhoto(photo, $event)"
-                      class="text-[#681423] hover:underline font-bold flex items-center gap-1">
-                <span>⬇️ Tải</span>
-              </button>
+              <div class="flex items-center gap-3">
+                <button (click)="downloadSinglePhoto(photo, $event)"
+                        class="text-[#681423] hover:underline font-bold flex items-center gap-1">
+                  <span>⬇️ Tải</span>
+                </button>
+                <button (click)="removeMarketingPhoto(photo, $event)"
+                        title="Gỡ ảnh khỏi Kho Marketing"
+                        class="text-red-600 hover:text-red-800 hover:underline font-semibold flex items-center gap-0.5">
+                  <span>🗑️ Gỡ</span>
+                </button>
+              </div>
             </div>
           </div>
 
