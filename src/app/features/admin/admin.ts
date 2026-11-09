@@ -143,15 +143,15 @@ export class Admin implements OnInit, OnDestroy {
 
   // Revenue Filters
   selectedRange = signal<'today' | 'yesterday' | '7d' | '30d' | 'all' | 'custom'>('today');
-  customFrom = signal<string>('');
-  customTo = signal<string>('');
-  selectedMachineId = signal<string>('');
+  customFrom = '';
+  customTo = '';
+  selectedMachineId = '';
 
   // Marketing Gallery State
   marketingPhotos = signal<MarketingPhoto[]>([]);
   isLoadingMarketing = signal<boolean>(false);
-  selectedMarketingMachineId = signal<string>('');
-  selectedMarketingEventId = signal<string>('');
+  selectedMarketingMachineId = '';
+  selectedMarketingEventId = '';
   marketingRange = signal<'all' | 'today' | '7d' | '30d'>('all');
   marketingFeaturedOnly = signal<boolean>(false);
   selectedMarketingIds = signal<string[]>([]);
@@ -162,7 +162,7 @@ export class Admin implements OnInit, OnDestroy {
   // Events & Gallery State
   eventsList = signal<BoothEvent[]>([]);
   isLoadingEvents = signal<boolean>(false);
-  selectedEventMachineId = signal<string>('');
+  selectedEventMachineId = '';
   selectedEvent = signal<BoothEvent | null>(null);
   eventSessions = signal<EventSession[]>([]);
   isLoadingEventSessions = signal<boolean>(false);
@@ -379,11 +379,11 @@ export class Admin implements OnInit, OnDestroy {
       params.set('storeId', 'store_hp_01');
       params.set('range', this.selectedRange());
       if (this.selectedRange() === 'custom') {
-        if (this.customFrom()) params.set('from', this.customFrom());
-        if (this.customTo()) params.set('to', this.customTo());
+        if (this.customFrom) params.set('from', this.customFrom);
+        if (this.customTo) params.set('to', this.customTo);
       }
-      if (this.selectedMachineId()) {
-        params.set('machineId', this.selectedMachineId());
+      if (this.selectedMachineId) {
+        params.set('machineId', this.selectedMachineId);
       }
       if (managedIds.length > 0) {
         params.set('machineIds', managedIds.join(','));
@@ -507,11 +507,11 @@ export class Admin implements OnInit, OnDestroy {
       if (this.marketingFeaturedOnly()) {
         params.set('featuredOnly', 'true');
       }
-      if (this.selectedMarketingEventId()) {
-        params.set('eventPublicId', this.selectedMarketingEventId());
+      if (this.selectedMarketingEventId) {
+        params.set('eventPublicId', this.selectedMarketingEventId);
       }
-      if (this.selectedMarketingMachineId()) {
-        params.set('machineId', this.selectedMarketingMachineId());
+      if (this.selectedMarketingMachineId) {
+        params.set('machineId', this.selectedMarketingMachineId);
       } else {
         const managedIds = this.getManagedMachineIds();
         if (managedIds.length > 0) {
@@ -747,8 +747,8 @@ export class Admin implements OnInit, OnDestroy {
     try {
       const params = new URLSearchParams();
       params.set('storeId', 'store_hp_01');
-      if (this.selectedEventMachineId()) {
-        params.set('machineId', this.selectedEventMachineId());
+      if (this.selectedEventMachineId) {
+        params.set('machineId', this.selectedEventMachineId);
       } else {
         const managedIds = this.getManagedMachineIds();
         if (managedIds.length > 0) {
@@ -802,8 +802,8 @@ export class Admin implements OnInit, OnDestroy {
     try {
       const params = new URLSearchParams();
       params.set('storeId', 'store_hp_01');
-      if (this.selectedEventMachineId()) {
-        params.set('machineId', this.selectedEventMachineId());
+      if (this.selectedEventMachineId) {
+        params.set('machineId', this.selectedEventMachineId);
       }
       const response = await fetch(`${this.defaultWorkerUrl}/v1/admin/events/${encodeURIComponent(evt.id)}/sessions?${params.toString()}`, {
         headers: {
@@ -955,7 +955,7 @@ export class Admin implements OnInit, OnDestroy {
   openCreateEventModal(defaultMachineId?: string) {
     this.isCreateEventMode.set(true);
     const mList = this.machines();
-    const fallbackMachine = defaultMachineId || this.selectedEventMachineId() || (mList.length > 0 ? mList[0].id : '');
+    const fallbackMachine = defaultMachineId || this.selectedEventMachineId || (mList.length > 0 ? mList[0].id : '');
     this.eventForm.set({
       id: '',
       name: '',
