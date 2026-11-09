@@ -833,9 +833,9 @@
                 📱 QR
               </button>
 
-              <button (click)="copyEventShareUrl(evt, $event)" title="Sao chép link web (xem toàn bộ ảnh)"
+              <button (click)="openEventGallery(evt, $event)" title="Mở web sự kiện trong tab mới (xem toàn bộ ảnh)"
                       class="p-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs text-[#681423] transition-colors">
-                📋
+                🌐
               </button>
 
               <button (click)="openEventConsentedGallery(evt, $event)" title="Mở web xem ảnh khách đồng ý (consent=1)"
@@ -878,20 +878,15 @@
               <span>📱</span>
               <span>Mã QR Sự Kiện</span>
             </button>
-            <button (click)="copyEventShareUrl(selectedEvent()!, $event)"
-                    class="px-4 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] border border-[#C89965]/40 text-xs font-semibold text-[#681423] transition-all flex items-center gap-1.5">
-              <span>📋</span>
-              <span>Sao Chép Link Khách</span>
+            <button (click)="openEventGallery(selectedEvent()!, $event)"
+                    class="px-4 py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white text-xs font-semibold shadow transition-all flex items-center gap-1.5">
+              <span>🌐</span>
+              <span>Mở Web Sự Kiện</span>
             </button>
             <button (click)="openEventConsentedGallery(selectedEvent()!, $event)"
                     class="px-4 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-emerald-800 transition-all flex items-center gap-1.5">
               <span>✅</span>
-              <span>Xem Ảnh Khách Đồng Ý</span>
-            </button>
-            <button (click)="copyEventConsentedShareUrl(selectedEvent()!, $event)"
-                    title="Sao chép link web chỉ hiển thị phiên khách đồng ý"
-                    class="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-emerald-800 transition-all">
-              📋 Link đồng ý
+              <span>Mở Link Khách Đồng Ý</span>
             </button>
           </div>
         </div>
@@ -1032,10 +1027,10 @@
                 Xem Chi Tiết
               </button>
 
-              <button (click)="copyGuestShareUrl(s.guestShareUrl, $event)"
-                      title="Sao chép liên kết khách xem ảnh"
-                      class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#2C1A1D] font-semibold transition-colors flex items-center gap-1">
-                <span>🔗</span>
+              <button (click)="openGuestShareUrl(s.guestShareUrl, $event, s.session_public_id || s.id, selectedEvent()?.public_id || selectedEvent()?.id)"
+                      title="Mở liên kết khách xem ảnh trong tab mới"
+                      class="px-3 py-2 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-[#681423] border border-[#C89965]/40 font-semibold transition-colors flex items-center gap-1">
+                <span>🌐</span>
                 <span>Link Khách</span>
               </button>
             </div>
@@ -1431,9 +1426,9 @@
               <span>⬇️ Tải Ảnh Về Máy</span>
             </button>
             <button *ngIf="previewPhoto()?.signed_guest_share_url"
-                    (click)="copyGuestShareUrl(previewPhoto()!.signed_guest_share_url!)"
-                    class="w-full py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#2C1A1D] font-semibold transition-colors flex items-center justify-center gap-1.5">
-              <span>🔗 Link Khách Quét QR</span>
+                    (click)="openGuestShareUrl(previewPhoto()!.signed_guest_share_url!, $event, previewPhoto()?.session_public_id || previewPhoto()?.id, previewPhoto()?.event_public_id)"
+                    class="w-full py-2 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white font-semibold shadow transition-colors flex items-center justify-center gap-1.5">
+              <span>🌐 Mở Link Khách Quét QR (Tab Mới)</span>
             </button>
           </div>
 
@@ -1465,13 +1460,15 @@
           {{ getEventShareUrl(eventQrModal()!) }}
         </div>
 
-        <button (click)="copyEventShareUrl(eventQrModal()!)"
-                class="w-full py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs uppercase tracking-wider shadow transition-all">
-          📋 Sao Chép Liên Kết
+        <button (click)="openEventGallery(eventQrModal()!)"
+                class="w-full py-2.5 rounded-full bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs uppercase tracking-wider shadow transition-all flex items-center justify-center gap-2">
+          <span>🌐</span>
+          <span>Mở Web Sự Kiện (Tab Mới)</span>
         </button>
-        <button (click)="copyEventConsentedShareUrl(eventQrModal()!)"
-                class="w-full mt-2 py-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs uppercase tracking-wider transition-all">
-          ✅ Sao Chép Link Ảnh Khách Đồng Ý
+        <button (click)="openEventConsentedGallery(eventQrModal()!)"
+                class="w-full mt-2 py-2.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+          <span>✅</span>
+          <span>Mở Link Ảnh Khách Đồng Ý</span>
         </button>
       </div>
     </div>
@@ -1544,9 +1541,9 @@
 
             <!-- Guest Link -->
             <div class="pt-3 border-t border-[#E8DDD2]">
-              <button (click)="copyGuestShareUrl(selectedSession()!.guestShareUrl)"
-                      class="w-full py-2.5 rounded-xl bg-[#FAF6F0] hover:bg-[#E8DDD2] text-[#681423] border border-[#C89965]/40 font-bold text-xs transition-colors flex items-center justify-center gap-1.5">
-                <span>🔗 Sao Chép Liên Kết Khách Quét QR</span>
+              <button (click)="openGuestShareUrl(selectedSession()!.guestShareUrl, $event, selectedSession()?.session_public_id || selectedSession()?.id, selectedEvent()?.public_id || selectedEvent()?.id)"
+                      class="w-full py-2.5 rounded-xl bg-[#681423] hover:bg-[#7E1B2E] text-white font-bold text-xs shadow transition-colors flex items-center justify-center gap-1.5">
+                <span>🌐 Mở Trang Khách Quét QR (Tab Mới)</span>
               </button>
             </div>
 

@@ -1012,14 +1012,43 @@ export class Admin implements OnInit, OnDestroy {
     return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(this.getEventConsentedShareUrl(evt))}`;
   }
 
+  getGuestShareUrl(rawUrl?: string, sessionPublicId?: string, eventPublicId?: string): string {
+    if (rawUrl && rawUrl.trim()) {
+      return rawUrl.trim().replace('https://tanh.event-vn.com', 'https://tachtach.event-vn.com');
+    }
+    const evtId = eventPublicId || this.selectedEvent()?.public_id || this.selectedEvent()?.id;
+    const sId = sessionPublicId || this.selectedSession()?.session_public_id || this.selectedSession()?.id;
+    if (evtId && sId) {
+      return `https://tachtach.event-vn.com/event/${encodeURIComponent(evtId)}?s=${encodeURIComponent(sId)}`;
+    }
+    return '';
+  }
+
+  openGuestShareUrl(url?: string, ev?: MouseEvent, sessionPublicId?: string, eventPublicId?: string) {
+    if (ev) ev.stopPropagation();
+    const finalUrl = this.getGuestShareUrl(url, sessionPublicId, eventPublicId);
+    if (finalUrl) {
+      try { navigator.clipboard.writeText(finalUrl); } catch {}
+      window.open(finalUrl, '_blank');
+    }
+  }
+
   openEventGallery(evt: BoothEvent, ev?: MouseEvent) {
     if (ev) ev.stopPropagation();
-    window.open(this.getEventShareUrl(evt), '_blank');
+    const url = this.getEventShareUrl(evt);
+    if (url) {
+      try { navigator.clipboard.writeText(url); } catch {}
+      window.open(url, '_blank');
+    }
   }
 
   openEventConsentedGallery(evt: BoothEvent, ev?: MouseEvent) {
     if (ev) ev.stopPropagation();
-    window.open(this.getEventConsentedShareUrl(evt), '_blank');
+    const url = this.getEventConsentedShareUrl(evt);
+    if (url) {
+      try { navigator.clipboard.writeText(url); } catch {}
+      window.open(url, '_blank');
+    }
   }
 
   copyEventConsentedShareUrl(evt: BoothEvent, ev?: MouseEvent) {
